@@ -1,0 +1,72 @@
+{
+  "basic_project": {
+    "title": "Basic Test Project",
+    "billing_date": "2023-04-28",
+    "as_of_date": "2023-08-28",
+    "grace_days": 30,
+    "annual_rate": 0.18,
+    "monthly_rate": 0.015,
+    "principal_fw": 1000000.00,
+    "principal_dw": 500000.00,
+    "payments": [
+      {"desc": "Initial Payment", "date": "2023-05-01", "amount": 100000.00}
+    ],
+    "invoices": [
+      {"date": "2023-05-01", "description": "Test Invoice", "amount": 50000.00}
+    ],
+    "sharepoint": {"folder_id": null, "folder_path": null}
+  },
+  "complex_project": {
+    "title": "Complex Test Project with Multiple Payments",
+    "billing_date": "2023-01-01",
+    "as_of_date": "2024-12-31",
+    "grace_days": 45,
+    "annual_rate": 0.20,
+    "monthly_rate": 0.0167,
+    "principal_fw": 5000000.00,
+    "principal_dw": 2000000.00,
+    "payments": [
+      {"desc": "Q1 Payment", "date": "2023-03-31", "amount": 250000.00},
+      {"desc": "Q2 Payment", "date": "2023-06-30", "amount": 300000.00},
+      {"desc": "Q3 Payment", "date": "2023-09-30", "amount": 275000.00},
+      {"desc": "Q4 Payment", "date": "2023-12-31", "amount": 400000.00}
+    ],
+    "invoices": [
+      {"date": "2023-01-15", "description": "Initial Invoice", "amount": 100000.00},
+      {"date": "2023-04-15", "description": "Quarterly Invoice", "amount": 150000.00},
+      {"date": "2023-07-15", "description": "Mid-year Invoice", "amount": 125000.00},
+      {"date": "2023-10-15", "description": "Final Invoice", "amount": 200000.00}
+    ],
+    "sharepoint": {"folder_id": "test_folder_123", "folder_path": "/Projects/Complex Test"}
+  },
+  "minimal_project": {
+    "title": "Minimal Test Project",
+    "billing_date": "2023-06-01",
+    "as_of_date": "2023-06-30",
+    "grace_days": 0,
+    "annual_rate": 0.12,
+    "monthly_rate": 0.01,
+    "principal_fw": 100000.00,
+    "principal_dw": 50000.00,
+    "payments": [],
+    "invoices": [],
+    "sharepoint": {"folder_id": null, "folder_path": null}
+  },
+  "edge_case_project": {
+    "title": "Edge Case Test Project",
+    "billing_date": "2023-12-31",
+    "as_of_date": "2023-12-31",
+    "grace_days": 365,
+    "annual_rate": 0.0,
+    "monthly_rate": 0.0,
+    "principal_fw": 0.0,
+    "principal_dw": 0.0,
+    "payments": [
+      {"desc": "Overpayment", "date": "2023-12-31", "amount": 1000000.00}
+    ],
+    "invoices": [
+      {"date": "2023-12-31", "description": "Zero Amount Invoice", "amount": 0.00}
+    ],
+    "sharepoint": {"folder_id": null, "folder_path": null}
+  }
+}

@@ -1,0 +1,33 @@
+# Testing Framework Requirements
+pytest>=7.4.0
+pytest-html>=3.2.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.1
+pytest-timeout>=2.1.0
+pytest-mock>=3.11.1
+
+# Playwright for web testing
+playwright>=1.40.0
+
+# Desktop automation
+pywinauto>=0.6.8
+uiautomation>=2.0.15
+
+# Additional testing utilities
+selenium>=4.15.0
+requests>=2.31.0
+Pillow>=10.0.0
+psutil>=5.9.0
+
+# Test data generation
+faker>=19.6.2
+factory-boy>=3.3.0
+
+# Performance testing
+locust>=2.17.0
+
+# API testing
+httpx>=0.25.0
+
+# File watching for test watch mode
+watchdog>=3.0.0

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(.venv/Scripts/activate)",
+      "Bash(pip install:*)",
+      "Bash(playwright install)",
+      "Bash(del test_import.py)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

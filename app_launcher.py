@@ -49,7 +49,7 @@ class AppLauncher:
         except Exception as e:
             raise RuntimeError(f"Tkinter GUI not available: {e}")
         
-        print("✓ All prerequisites met")
+        print("+ All prerequisites met")
         
     def launch_direct(self):
         """Launch the app directly in the same process"""
@@ -72,8 +72,8 @@ class AppLauncher:
             # Remove topmost after a moment so it doesn't stay always on top
             app.root.after(1000, lambda: app.root.attributes('-topmost', False))
             
-            print("✓ Application launched successfully")
-            print("✓ Window should be visible and focused")
+            print("+ Application launched successfully")
+            print("+ Window should be visible and focused")
             
             # Store reference
             self.app_instance = app
@@ -84,7 +84,7 @@ class AppLauncher:
             return True
             
         except Exception as e:
-            print(f"✗ Direct launch failed: {e}")
+            print(f"- Direct launch failed: {e}")
             traceback.print_exc()
             return False
     
@@ -106,12 +106,12 @@ class AppLauncher:
             
             # Check if process is still running
             if process.poll() is None:
-                print("✓ Application launched in subprocess")
-                print("✓ Process is running")
+                print("+ Application launched in subprocess")
+                print("+ Process is running")
                 return True
             else:
                 stdout, stderr = process.communicate()
-                print(f"✗ Subprocess failed with exit code: {process.returncode}")
+                print(f"- Subprocess failed with exit code: {process.returncode}")
                 if stdout:
                     print(f"STDOUT: {stdout.decode()}")
                 if stderr:
@@ -119,7 +119,7 @@ class AppLauncher:
                 return False
                 
         except Exception as e:
-            print(f"✗ Subprocess launch failed: {e}")
+            print(f"- Subprocess launch failed: {e}")
             return False
     
     def create_minimal_app(self):
@@ -198,13 +198,13 @@ class AppLauncher:
                                    command=retry_full_app, bg="lightblue")
             retry_button.pack(pady=(20, 0))
             
-            print("✓ Minimal application created and visible")
+            print("+ Minimal application created and visible")
             root.mainloop()
             
             return True
             
         except Exception as e:
-            print(f"✗ Even minimal app failed: {e}")
+            print(f"- Even minimal app failed: {e}")
             return False
     
     def show_error_dialog(self, error_message):
@@ -253,7 +253,7 @@ class AppLauncher:
                 
         except Exception as e:
             error_msg = f"Launch attempt {self.launch_attempts} failed: {e}"
-            print(f"✗ {error_msg}")
+            print(f"- {error_msg}")
             traceback.print_exc()
             
             if self.launch_attempts >= self.max_attempts:
@@ -269,7 +269,7 @@ class AppLauncher:
             try:
                 # Check if window still exists
                 if self.app_instance.root.winfo_exists():
-                    print("✓ Application is running normally")
+                    print("+ Application is running normally")
                 else:
                     print("! Application window closed")
             except:
@@ -287,12 +287,12 @@ def main():
         
         if success:
             print("\n" + "=" * 60)
-            print("✓ APPLICATION LAUNCHED SUCCESSFULLY")
-            print("✓ Window should be visible and focused")
+            print("+ APPLICATION LAUNCHED SUCCESSFULLY")
+            print("+ Window should be visible and focused")
             print("=" * 60)
         else:
             print("\n" + "=" * 60)
-            print("✗ ALL LAUNCH ATTEMPTS FAILED")
+            print("- ALL LAUNCH ATTEMPTS FAILED")
             print("=" * 60)
             
     except KeyboardInterrupt:

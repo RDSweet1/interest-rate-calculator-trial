@@ -219,16 +219,42 @@ class InterestRateCalculator:
         top_frame = ttk.Frame(project_content)
         top_frame.pack(fill=tk.X)
         
-        # Project list
+        # Project list with TreeView for better display
         list_frame = ttk.Frame(top_frame)
         list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         ttk.Label(list_frame, text="Available Projects:").pack(anchor=tk.W)
-        self.project_listbox = tk.Listbox(list_frame, height=4)
-        self.project_listbox.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
+        
+        # Create TreeView with columns for project details
+        columns = ('Title', 'Last Modified', 'Status')
+        self.project_tree = ttk.Treeview(list_frame, columns=columns, show='tree headings', height=6)
+        
+        # Configure column headings and widths
+        self.project_tree.heading('#0', text='File', anchor=tk.W)
+        self.project_tree.column('#0', width=120, minwidth=80)
+        
+        for col in columns:
+            self.project_tree.heading(col, text=col, anchor=tk.W)
+            if col == 'Title':
+                self.project_tree.column(col, width=200, minwidth=150)
+            elif col == 'Last Modified':
+                self.project_tree.column(col, width=120, minwidth=100)
+            else:  # Status
+                self.project_tree.column(col, width=80, minwidth=60)
+        
+        # Add scrollbar for TreeView
+        tree_scroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.project_tree.yview)
+        self.project_tree.configure(yscrollcommand=tree_scroll.set)
+        
+        # Pack TreeView and scrollbar
+        self.project_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=(5, 0))
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y, pady=(5, 0))
         
         # Bind double-click to open project editor
-        self.project_listbox.bind('<Double-1>', self.on_double_click)
+        self.project_tree.bind('<Double-1>', self.on_double_click)
+        
+        # Also keep the old listbox reference for compatibility (hidden)
+        self.project_listbox = self.project_tree
         
         # Project buttons
         button_frame = ttk.Frame(top_frame)
@@ -246,10 +272,24 @@ class InterestRateCalculator:
                                    command=self.delete_project)
         self.delete_btn.pack(pady=2)
         
+        # Separator
+        ttk.Separator(button_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+        
+        # Import/Export buttons
+        self.import_btn = ttk.Button(button_frame, text="Import Project", width=15,
+                                   command=self.import_project)
+        self.import_btn.pack(pady=2)
+        
+        self.export_btn = ttk.Button(button_frame, text="Export Project", width=15,
+                                   command=self.export_project)
+        self.export_btn.pack(pady=2)
+        
         
     def load_projects(self):
-        """Load existing projects from JSON files."""
-        self.project_listbox.delete(0, tk.END)
+        """Load existing projects from JSON files into TreeView."""
+        # Clear existing items
+        for item in self.project_tree.get_children():
+            self.project_tree.delete(item)
         
         if not self.projects_dir.exists():
             return
@@ -257,50 +297,105 @@ class InterestRateCalculator:
         project_files = list(self.projects_dir.glob("*.json"))
         
         if not project_files:
-            self.project_listbox.insert(tk.END, "No projects found")
+            # Insert a placeholder item
+            self.project_tree.insert('', tk.END, text="No projects found", 
+                                   values=("", "", ""))
             self.status_var.set("No projects available")
             return
             
+        loaded_count = 0
         for project_file in sorted(project_files):
             try:
                 with open(project_file, 'r') as f:
                     project_data = json.load(f)
-                    project_name = project_data.get('title', project_file.stem)
-                    self.project_listbox.insert(tk.END, project_name)
-            except Exception as e:
-                self.project_listbox.insert(tk.END, f"Error loading {project_file.name}")
+                    
+                # Get project details
+                project_title = project_data.get('title', project_file.stem)
                 
-        self.status_var.set(f"Loaded {len(project_files)} projects")
+                # Get file modification time
+                mod_time = datetime.fromtimestamp(project_file.stat().st_mtime)
+                mod_time_str = mod_time.strftime('%m/%d/%Y %H:%M')
+                
+                # Determine status based on project data
+                status = "Ready"
+                if not project_data.get('title'):
+                    status = "Incomplete"
+                elif not project_data.get('as_of_date'):
+                    status = "Missing Date"
+                
+                # Insert into TreeView
+                self.project_tree.insert('', tk.END, 
+                                       text=project_file.name,
+                                       values=(project_title, mod_time_str, status),
+                                       tags=(project_file.name,))  # Store filename in tags
+                loaded_count += 1
+                
+            except Exception as e:
+                # Insert error item
+                self.project_tree.insert('', tk.END, 
+                                       text=project_file.name,
+                                       values=(f"Error: {str(e)[:30]}...", "", "Error"),
+                                       tags=(project_file.name,))
+                
+        self.status_var.set(f"Loaded {loaded_count} projects")
         
     def new_project(self):
-        """Create a new project."""
-        self.clear_form()
-        self.show_project_editor()
-        self.status_var.set("Ready to create new project")
+        """Create a new project using modal dialog."""
+        dialog = NewProjectDialog(self.root)
+        if dialog.result:
+            # Create new project with the provided data
+            project_data = {
+                'title': dialog.result['title'],
+                'description': dialog.result.get('description', ''),
+                'as_of_date': dialog.result.get('as_of_date', ''),
+                'grace_days': dialog.result.get('grace_days', 30),
+                'annual_rate': dialog.result.get('annual_rate', 0.18),
+                'monthly_rate': dialog.result.get('monthly_rate', 0.015),
+                'payments': [],
+                'invoices': []
+            }
+            
+            # Show the project editor and load the new project data
+            self.show_project_editor()
+            
+            # Create a temporary file path for the new project
+            safe_filename = "".join(c for c in dialog.result['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_filename = safe_filename.replace(' ', '_') + '.json'
+            temp_file = self.projects_dir / safe_filename
+            
+            self.load_project_data(project_data, temp_file)
+            self.status_var.set(f"Created new project: {dialog.result['title']}")
+        else:
+            self.status_var.set("New project creation cancelled")
         
     def edit_project(self):
         """Edit selected project."""
-        selection = self.project_listbox.curselection()
+        selection = self.project_tree.selection()
         if not selection:
             messagebox.showwarning("No Selection", "Please select a project to edit")
             return
             
-        project_name = self.project_listbox.get(selection[0])
+        # Get the selected item
+        item = selection[0]
+        filename = self.project_tree.item(item, 'text')
+        
+        # Skip if it's a placeholder item
+        if filename == "No projects found":
+            return
         
         # Find the project file
-        project_files = list(self.projects_dir.glob("*.json"))
-        for project_file in project_files:
-            try:
-                with open(project_file, 'r') as f:
-                    project_data = json.load(f)
-                    if project_data.get('title', project_file.stem) == project_name:
-                        self.show_project_editor()  # Create form first
-                        self.load_project_data(project_data, project_file)  # Then load data
-                        return
-            except Exception as e:
-                continue
-                
-        messagebox.showerror("Error", f"Could not load project: {project_name}")
+        project_file = self.projects_dir / filename
+        if not project_file.exists():
+            messagebox.showerror("Error", f"Project file not found: {filename}")
+            return
+            
+        try:
+            with open(project_file, 'r') as f:
+                project_data = json.load(f)
+            self.show_project_editor()  # Create form first
+            self.load_project_data(project_data, project_file)  # Then load data
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not load project: {str(e)}")
         
     def show_project_editor(self):
         """Show the project editor sections."""
@@ -340,45 +435,77 @@ class InterestRateCalculator:
         title_entry = ttk.Entry(info_content, textvariable=self.title_var, width=50)
         title_entry.grid(row=0, column=1, columnspan=3, sticky=tk.W, pady=2)
         
-        # Dates Row
-        ttk.Label(info_content, text="Billing Date:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        self.billing_date_var = tk.StringVar()
-        ttk.Entry(info_content, textvariable=self.billing_date_var, width=12).grid(row=1, column=1, sticky=tk.W, pady=2)
+        # Payments Calculated Through Date Row with Date Picker
+        ttk.Label(info_content, text="Payments Calculated Through Date:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=2)
         
-        ttk.Label(info_content, text="As-of Date:").grid(row=1, column=2, sticky=tk.W, padx=(10, 5), pady=2)
+        # Date entry frame with picker button
+        date_frame = ttk.Frame(info_content)
+        date_frame.grid(row=1, column=1, sticky=tk.W, pady=2)
+        
         self.as_of_date_var = tk.StringVar()
-        ttk.Entry(info_content, textvariable=self.as_of_date_var, width=12).grid(row=1, column=3, sticky=tk.W, pady=2)
+        date_entry = ttk.Entry(date_frame, textvariable=self.as_of_date_var, width=12)
+        date_entry.pack(side=tk.LEFT)
         
-        # Rates Row
+        # Date picker button
+        date_picker_btn = ttk.Button(date_frame, text="📅", width=3, 
+                                    command=lambda: self.show_date_picker(self.as_of_date_var))
+        date_picker_btn.pack(side=tk.LEFT, padx=(2, 0))
+        
+        # Today button for quick date entry
+        today_btn = ttk.Button(date_frame, text="Today", width=6,
+                              command=lambda: self.set_today_date(self.as_of_date_var))
+        today_btn.pack(side=tk.LEFT, padx=(2, 0))
+        
+        # Rates Row with enhanced validation
         ttk.Label(info_content, text="Grace Days:").grid(row=2, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        self.grace_days_var = tk.StringVar()
-        ttk.Entry(info_content, textvariable=self.grace_days_var, width=8).grid(row=2, column=1, sticky=tk.W, pady=2)
         
+        # Grace days with validation
+        grace_frame = ttk.Frame(info_content)
+        grace_frame.grid(row=2, column=1, sticky=tk.W, pady=2)
+        
+        self.grace_days_var = tk.StringVar()
+        grace_entry = ttk.Entry(grace_frame, textvariable=self.grace_days_var, width=8)
+        grace_entry.pack(side=tk.LEFT)
+        grace_entry.bind('<KeyRelease>', lambda e: self.validate_numeric_input(self.grace_days_var, 'integer'))
+        
+        # Grace days info label
+        ttk.Label(grace_frame, text="days", foreground="gray").pack(side=tk.LEFT, padx=(2, 0))
+        
+        # Annual Rate with auto-calculation
         ttk.Label(info_content, text="Annual Rate (%):").grid(row=2, column=2, sticky=tk.W, padx=(10, 5), pady=2)
+        
+        annual_frame = ttk.Frame(info_content)
+        annual_frame.grid(row=2, column=3, sticky=tk.W, pady=2)
+        
         self.annual_rate_var = tk.StringVar()
-        annual_rate_entry = ttk.Entry(info_content, textvariable=self.annual_rate_var, width=8)
-        annual_rate_entry.grid(row=2, column=3, sticky=tk.W, pady=2)
+        annual_rate_entry = ttk.Entry(annual_frame, textvariable=self.annual_rate_var, width=8)
+        annual_rate_entry.pack(side=tk.LEFT)
+        annual_rate_entry.bind('<KeyRelease>', self.on_annual_rate_change)
         annual_rate_entry.bind('<FocusOut>', self.format_annual_rate)
         
-        # Monthly Rate Row
+        # Auto-calc button
+        auto_calc_btn = ttk.Button(annual_frame, text="Auto", width=4,
+                                  command=self.auto_calculate_monthly_rate)
+        auto_calc_btn.pack(side=tk.LEFT, padx=(2, 0))
+        
+        # Monthly Rate Row with validation
         ttk.Label(info_content, text="Monthly Rate (%):").grid(row=3, column=0, sticky=tk.W, padx=(0, 5), pady=2)
+        
+        monthly_frame = ttk.Frame(info_content)
+        monthly_frame.grid(row=3, column=1, sticky=tk.W, pady=2)
+        
         self.monthly_rate_var = tk.StringVar()
-        monthly_rate_entry = ttk.Entry(info_content, textvariable=self.monthly_rate_var, width=8)
-        monthly_rate_entry.grid(row=3, column=1, sticky=tk.W, pady=2)
+        monthly_rate_entry = ttk.Entry(monthly_frame, textvariable=self.monthly_rate_var, width=8)
+        monthly_rate_entry.pack(side=tk.LEFT)
+        monthly_rate_entry.bind('<KeyRelease>', lambda e: self.validate_numeric_input(self.monthly_rate_var, 'percentage'))
         monthly_rate_entry.bind('<FocusOut>', self.format_monthly_rate)
         
-        # Principals Row
-        ttk.Label(info_content, text="Flood/Wind Principal ($):").grid(row=3, column=2, sticky=tk.W, padx=(10, 5), pady=2)
-        self.principal_fw_var = tk.StringVar()
-        fw_entry = ttk.Entry(info_content, textvariable=self.principal_fw_var, width=15)
-        fw_entry.grid(row=3, column=3, sticky=tk.W, pady=2)
-        fw_entry.bind('<FocusOut>', self.format_fw_principal)
+        # Rate relationship indicator
+        self.rate_status_label = ttk.Label(monthly_frame, text="", foreground="gray")
+        self.rate_status_label.pack(side=tk.LEFT, padx=(5, 0))
         
-        ttk.Label(info_content, text="Drywall Principal ($):").grid(row=4, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        self.principal_dw_var = tk.StringVar()
-        dw_entry = ttk.Entry(info_content, textvariable=self.principal_dw_var, width=15)
-        dw_entry.grid(row=4, column=1, sticky=tk.W, pady=2)
-        dw_entry.bind('<FocusOut>', self.format_dw_principal)
+        # Note: Principal amounts are now managed through individual invoices
+        # Each invoice represents a principal amount that accrues interest from its invoice date
     
     def format_annual_rate(self, event=None):
         """Format annual rate as percentage"""
@@ -410,25 +537,7 @@ class InterestRateCalculator:
         except:
             pass
     
-    def format_fw_principal(self, event=None):
-        """Format flood/wind principal as currency"""
-        try:
-            value = self.principal_fw_var.get()
-            if value and not value.startswith('$'):
-                formatted = format_currency(value)
-                self.principal_fw_var.set(formatted)
-        except:
-            pass
-    
-    def format_dw_principal(self, event=None):
-        """Format drywall principal as currency"""
-        try:
-            value = self.principal_dw_var.get()
-            if value and not value.startswith('$'):
-                formatted = format_currency(value)
-                self.principal_dw_var.set(formatted)
-        except:
-            pass
+    # Principal formatting methods removed - principals are now managed through invoices
         
     def create_invoices_section(self):
         """Create collapsible invoices section with table."""
@@ -448,17 +557,19 @@ class InterestRateCalculator:
         ttk.Button(invoice_btn_frame, text="Delete Invoice", command=self.delete_invoice, width=15).pack(side=tk.LEFT)
         
         # Invoice table with proper formatting
-        columns = ('Date', 'Description', 'Amount')
+        columns = ('ID', 'Date', 'Description', 'Amount')
         self.invoices_tree = ttk.Treeview(invoices_content, columns=columns, show='headings', height=8)
         
         # Configure column widths and headings
+        self.invoices_tree.heading('ID', text='Invoice ID')
         self.invoices_tree.heading('Date', text='Date')
         self.invoices_tree.heading('Description', text='Description')
         self.invoices_tree.heading('Amount', text='Amount')
         
-        self.invoices_tree.column('Date', width=120, anchor='center')
-        self.invoices_tree.column('Description', width=200, anchor='center')
-        self.invoices_tree.column('Amount', width=120, anchor='center')
+        self.invoices_tree.column('ID', width=100, anchor='center')
+        self.invoices_tree.column('Date', width=100, anchor='center')
+        self.invoices_tree.column('Description', width=180, anchor='center')
+        self.invoices_tree.column('Amount', width=100, anchor='center')
         
         # Add scrollbar
         invoice_scrollbar = ttk.Scrollbar(invoices_content, orient=tk.VERTICAL, command=self.invoices_tree.yview)
@@ -470,14 +581,32 @@ class InterestRateCalculator:
     
     def add_invoice(self):
         """Add a new invoice."""
+        print("DEBUG: add_invoice() called")
         dialog = InvoiceDialog(self.root, "Add Invoice")
+        
+        # Wait for the dialog to complete (modal behavior)
+        self.root.wait_window(dialog.window)
+        
+        print(f"DEBUG: Dialog completed, dialog.result = {dialog.result}")
+        
         if dialog.result:
-            # Add to tree view
-            self.invoices_tree.insert('', 'end', values=(
+            print(f"DEBUG: Dialog result exists: {dialog.result}")
+            # Add to tree view with new 4-column format (ID, Date, Description, Amount)
+            values = (
+                dialog.result['id'],
                 dialog.result['date'],
                 dialog.result['desc'],
                 f"${dialog.result['amount']:,.2f}"
-            ))
+            )
+            print(f"DEBUG: Inserting values: {values}")
+            
+            self.invoices_tree.insert('', 'end', values=values)
+            print("DEBUG: Invoice inserted into tree")
+            
+            # Update status
+            self.status_var.set(f"Invoice {dialog.result['id']} added successfully")
+        else:
+            print("DEBUG: No dialog result - user cancelled or error occurred")
             
     def edit_invoice(self):
         """Edit selected invoice."""
@@ -489,17 +618,23 @@ class InterestRateCalculator:
         item = self.invoices_tree.item(selection[0])
         values = item['values']
         
-        # Parse existing data
+        # Parse existing data (new 4-column format: ID, Date, Description, Amount)
         existing_data = {
-            'date': values[0],
-            'desc': values[1],
-            'amount': float(values[2].replace('$', '').replace(',', ''))
+            'id': values[0],
+            'date': values[1],
+            'desc': values[2],
+            'amount': float(values[3].replace('$', '').replace(',', ''))
         }
         
         dialog = InvoiceDialog(self.root, "Edit Invoice", existing_data)
+        
+        # Wait for the dialog to complete (modal behavior)
+        self.root.wait_window(dialog.window)
+        
         if dialog.result:
-            # Update tree view
+            # Update tree view with new 4-column format
             self.invoices_tree.item(selection[0], values=(
+                dialog.result['id'],
                 dialog.result['date'],
                 dialog.result['desc'],
                 f"${dialog.result['amount']:,.2f}"
@@ -579,7 +714,6 @@ class InterestRateCalculator:
             
             # Load basic data
             self.title_var.set(project_data.get('title', ''))
-            self.billing_date_var.set(convert_to_american_date(project_data.get('billing_date', '')))
             self.as_of_date_var.set(convert_to_american_date(project_data.get('as_of_date', '')))
             self.grace_days_var.set(str(project_data.get('grace_days', '')))
             
@@ -593,18 +727,11 @@ class InterestRateCalculator:
                 self.monthly_rate_var.set(format_percentage(monthly_rate))
             
             # Format principals as currency
-            fw_principal = project_data.get('principal_fw', '')
-            if fw_principal:
-                self.principal_fw_var.set(format_currency(fw_principal))
-            
-            dw_principal = project_data.get('principal_dw', '')
-            if dw_principal:
-                self.principal_dw_var.set(format_currency(dw_principal))
+            # Principal amounts are now managed through individual invoices
             
             # Load invoices and payments
             self.load_invoices(project_data.get('invoices', []))
             self.load_payments(project_data.get('payments', []))
-            
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load project data: {str(e)}")
     
@@ -616,7 +743,10 @@ class InterestRateCalculator:
             
         # Add invoices
         for invoice in invoices:
+            # Generate ID if missing (for backward compatibility)
+            invoice_id = invoice.get('id', f"INV-{len(invoices):04d}")
             self.invoices_tree.insert('', 'end', values=(
+                invoice_id,
                 convert_to_american_date(invoice.get('date', '')),
                 invoice.get('desc', ''),
                 f"${invoice.get('amount', 0):,.2f}"
@@ -639,6 +769,10 @@ class InterestRateCalculator:
     def add_payment(self):
         """Add a new payment."""
         dialog = PaymentDialog(self.root, "Add Payment")
+        
+        # Wait for the dialog to complete (modal behavior)
+        self.root.wait_window(dialog.window)
+        
         if dialog.result:
             # Add to tree view
             self.payments_tree.insert('', 'end', values=(
@@ -665,6 +799,10 @@ class InterestRateCalculator:
         }
         
         dialog = PaymentDialog(self.root, "Edit Payment", existing_data)
+        
+        # Wait for the dialog to complete (modal behavior)
+        self.root.wait_window(dialog.window)
+        
         if dialog.result:
             # Update tree view
             self.payments_tree.item(selection[0], values=(
@@ -689,13 +827,10 @@ class InterestRateCalculator:
             # Collect form data
             project_data = {
                 'title': self.title_var.get(),
-                'billing_date': convert_to_iso_date(self.billing_date_var.get()),
                 'as_of_date': convert_to_iso_date(self.as_of_date_var.get()),
                 'grace_days': int(self.grace_days_var.get()) if self.grace_days_var.get() else 0,
                 'annual_rate': parse_percentage(self.annual_rate_var.get()),
                 'monthly_rate': parse_percentage(self.monthly_rate_var.get()),
-                'principal_fw': parse_currency(self.principal_fw_var.get()),
-                'principal_dw': parse_currency(self.principal_dw_var.get()),
                 'invoices': [],
                 'payments': []
             }
@@ -704,9 +839,10 @@ class InterestRateCalculator:
             for item in self.invoices_tree.get_children():
                 values = self.invoices_tree.item(item)['values']
                 invoice = {
-                    'date': convert_to_iso_date(values[0]),
-                    'desc': values[1],
-                    'amount': float(values[2].replace('$', '').replace(',', ''))
+                    'id': values[0],
+                    'date': convert_to_iso_date(values[1]),
+                    'desc': values[2],
+                    'amount': float(values[3].replace('$', '').replace(',', ''))
                 }
                 project_data['invoices'].append(invoice)
             
@@ -745,18 +881,15 @@ class InterestRateCalculator:
     def clear_form(self):
         """Clear all form fields."""
         self.title_var.set('')
-        self.billing_date_var.set('')
         self.as_of_date_var.set('')
         self.grace_days_var.set('')
         self.annual_rate_var.set('')
         self.monthly_rate_var.set('')
-        self.principal_fw_var.set('')
-        self.principal_dw_var.set('')
         
         # Clear invoices
         for item in self.invoices_tree.get_children():
             self.invoices_tree.delete(item)
-            
+        
         # Clear payments
         for item in self.payments_tree.get_children():
             self.payments_tree.delete(item)
@@ -766,30 +899,334 @@ class InterestRateCalculator:
         self.status_var.set("Form cleared - ready for new project")
     
     def delete_project(self):
-        """Delete selected project."""
-        selection = self.project_listbox.curselection()
+        """Delete selected project with enhanced confirmation."""
+        selection = self.project_tree.selection()
         if not selection:
             messagebox.showwarning("No Selection", "Please select a project to delete")
             return
             
-        project_name = self.project_listbox.get(selection[0])
+        # Get the selected item details
+        item = selection[0]
+        filename = self.project_tree.item(item, 'text')
+        project_title = self.project_tree.item(item, 'values')[0]  # Get title from TreeView
         
-        if messagebox.askyesno("Delete Project", f"Are you sure you want to delete '{project_name}'?"):
-            # Find and delete the project file
-            project_files = list(self.projects_dir.glob("*.json"))
-            for project_file in project_files:
-                try:
-                    with open(project_file, 'r') as f:
-                        project_data = json.load(f)
-                        if project_data.get('title', project_file.stem) == project_name:
-                            project_file.unlink()
-                            self.load_projects()
-                            self.status_var.set(f"Deleted project: {project_name}")
-                            return
-                except Exception as e:
-                    continue
+        # Skip if it's a placeholder item
+        if filename == "No projects found":
+            return
+            
+        # Enhanced confirmation dialog with more details
+        confirm_msg = f"Are you sure you want to delete this project?\n\n"
+        confirm_msg += f"File: {filename}\n"
+        confirm_msg += f"Title: {project_title}\n\n"
+        confirm_msg += "This action cannot be undone!"
+        
+        if messagebox.askyesno("Delete Project", confirm_msg, icon='warning'):
+            project_file = self.projects_dir / filename
+            
+            try:
+                if project_file.exists():
+                    project_file.unlink()
+                    self.load_projects()  # Refresh the TreeView
+                    self.status_var.set(f"Deleted project: {project_title}")
                     
-            messagebox.showerror("Error", f"Could not delete project: {project_name}")
+                    # Clear the editor if this project was being edited
+                    if hasattr(self, 'current_project_file') and self.current_project_file == project_file:
+                        self.clear_form()
+                        for widget in self.content_frame.winfo_children():
+                            widget.destroy()
+                else:
+                    messagebox.showerror("Error", f"Project file not found: {filename}")
+                    
+            except Exception as e:
+                messagebox.showerror("Error", f"Could not delete project: {str(e)}")
+    
+    def import_project(self):
+        """Import a project from a JSON file."""
+        from tkinter import filedialog
+        
+        try:
+            # Open file dialog to select JSON file
+            file_path = filedialog.askopenfilename(
+                title="Import Project",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialdir=str(Path.home() / "Documents")
+            )
+            
+            if not file_path:
+                return  # User cancelled
+                
+            # Load and validate the project file
+            with open(file_path, 'r') as f:
+                project_data = json.load(f)
+            
+            # Basic validation
+            required_fields = ['title']
+            for field in required_fields:
+                if field not in project_data:
+                    messagebox.showerror("Import Error", 
+                                       f"Invalid project file: missing '{field}' field")
+                    return
+            
+            # Check if project already exists
+            project_title = project_data['title']
+            safe_filename = "".join(c for c in project_title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_filename = safe_filename.replace(' ', '_') + '.json'
+            target_file = self.projects_dir / safe_filename
+            
+            if target_file.exists():
+                if not messagebox.askyesno("Project Exists", 
+                                         f"A project named '{project_title}' already exists.\n\n"
+                                         f"Do you want to overwrite it?"):
+                    return
+            
+            # Copy the project file to projects directory
+            import shutil
+            shutil.copy2(file_path, target_file)
+            
+            # Refresh the project list
+            self.load_projects()
+            
+            # Select the imported project in the TreeView
+            for item in self.project_tree.get_children():
+                if self.project_tree.item(item, 'text') == safe_filename:
+                    self.project_tree.selection_set(item)
+                    self.project_tree.focus(item)
+                    break
+            
+            self.status_var.set(f"Successfully imported project: {project_title}")
+            messagebox.showinfo("Import Successful", 
+                              f"Project '{project_title}' has been imported successfully!")
+            
+        except json.JSONDecodeError:
+            messagebox.showerror("Import Error", "Invalid JSON file format")
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import project: {str(e)}")
+    
+    def export_project(self):
+        """Export selected project to a JSON file."""
+        from tkinter import filedialog
+        
+        try:
+            # Get selected project
+            selection = self.project_tree.selection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select a project to export")
+                return
+                
+            # Get the selected item details
+            item = selection[0]
+            filename = self.project_tree.item(item, 'text')
+            project_title = self.project_tree.item(item, 'values')[0]
+            
+            # Skip if it's a placeholder item
+            if filename == "No projects found":
+                return
+                
+            # Load the project data
+            project_file = self.projects_dir / filename
+            if not project_file.exists():
+                messagebox.showerror("Error", f"Project file not found: {filename}")
+                return
+                
+            with open(project_file, 'r') as f:
+                project_data = json.load(f)
+            
+            # Open save dialog
+            safe_title = "".join(c for c in project_title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            default_filename = safe_title.replace(' ', '_') + '_export.json'
+            
+            save_path = filedialog.asksaveasfilename(
+                title="Export Project",
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialdir=str(Path.home() / "Documents"),
+                initialfile=default_filename
+            )
+            
+            if not save_path:
+                return  # User cancelled
+            
+            # Add export metadata
+            export_data = project_data.copy()
+            export_data['export_info'] = {
+                'exported_on': datetime.now().isoformat(),
+                'exported_from': 'Interest Rate Calculator v' + self.version,
+                'original_filename': filename
+            }
+            
+            # Save the project data
+            with open(save_path, 'w') as f:
+                json.dump(export_data, f, indent=2)
+            
+            self.status_var.set(f"Successfully exported project: {project_title}")
+            messagebox.showinfo("Export Successful", 
+                              f"Project '{project_title}' has been exported to:\n{save_path}")
+            
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to export project: {str(e)}")
+    
+    def show_date_picker(self, date_var):
+        """Show a simple date picker dialog."""
+        try:
+            # Create a simple date picker dialog
+            picker_window = tk.Toplevel(self.root)
+            picker_window.title("Select Date")
+            picker_window.geometry("300x250")
+            picker_window.transient(self.root)
+            picker_window.grab_set()
+            
+            # Center the window
+            picker_window.update_idletasks()
+            x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (300 // 2)
+            y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (250 // 2)
+            picker_window.geometry(f"300x250+{x}+{y}")
+            
+            main_frame = ttk.Frame(picker_window, padding="20")
+            main_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # Current date or parse existing date
+            current_date = datetime.now()
+            existing_date = date_var.get().strip()
+            if existing_date:
+                try:
+                    current_date = datetime.strptime(existing_date, '%m/%d/%Y')
+                except ValueError:
+                    pass  # Use current date if parsing fails
+            
+            # Year selection
+            year_frame = ttk.Frame(main_frame)
+            year_frame.pack(fill=tk.X, pady=(0, 10))
+            ttk.Label(year_frame, text="Year:").pack(side=tk.LEFT)
+            year_var = tk.StringVar(value=str(current_date.year))
+            year_spinbox = tk.Spinbox(year_frame, from_=2020, to=2030, textvariable=year_var, width=10)
+            year_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+            
+            # Month selection
+            month_frame = ttk.Frame(main_frame)
+            month_frame.pack(fill=tk.X, pady=(0, 10))
+            ttk.Label(month_frame, text="Month:").pack(side=tk.LEFT)
+            months = ["January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December"]
+            month_var = tk.StringVar(value=months[current_date.month - 1])
+            month_combo = ttk.Combobox(month_frame, textvariable=month_var, values=months, 
+                                     state="readonly", width=12)
+            month_combo.pack(side=tk.LEFT, padx=(10, 0))
+            
+            # Day selection
+            day_frame = ttk.Frame(main_frame)
+            day_frame.pack(fill=tk.X, pady=(0, 20))
+            ttk.Label(day_frame, text="Day:").pack(side=tk.LEFT)
+            day_var = tk.StringVar(value=str(current_date.day))
+            day_spinbox = tk.Spinbox(day_frame, from_=1, to=31, textvariable=day_var, width=10)
+            day_spinbox.pack(side=tk.LEFT, padx=(10, 0))
+            
+            # Buttons
+            button_frame = ttk.Frame(main_frame)
+            button_frame.pack(fill=tk.X)
+            
+            def set_date():
+                try:
+                    year = int(year_var.get())
+                    month = months.index(month_var.get()) + 1
+                    day = int(day_var.get())
+                    
+                    # Validate date
+                    selected_date = datetime(year, month, day)
+                    date_var.set(selected_date.strftime('%m/%d/%Y'))
+                    picker_window.destroy()
+                except ValueError as e:
+                    messagebox.showerror("Invalid Date", "Please select a valid date")
+            
+            ttk.Button(button_frame, text="Set Date", command=set_date).pack(side=tk.LEFT, padx=(0, 10))
+            ttk.Button(button_frame, text="Cancel", command=picker_window.destroy).pack(side=tk.LEFT)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open date picker: {str(e)}")
+    
+    def set_today_date(self, date_var):
+        """Set the date variable to today's date."""
+        today = datetime.now()
+        date_var.set(today.strftime('%m/%d/%Y'))
+    
+    def validate_numeric_input(self, var, input_type):
+        """Validate numeric input in real-time."""
+        try:
+            value = var.get().strip()
+            if not value:
+                return  # Allow empty values
+                
+            if input_type == 'integer':
+                # Allow only digits
+                if not value.replace('.', '').isdigit():
+                    # Remove invalid characters
+                    clean_value = ''.join(c for c in value if c.isdigit() or c == '.')
+                    var.set(clean_value)
+                    
+            elif input_type == 'percentage':
+                # Allow digits and decimal point
+                try:
+                    float(value.replace('%', ''))
+                except ValueError:
+                    # Remove invalid characters
+                    clean_value = ''.join(c for c in value if c.isdigit() or c in '.%')
+                    var.set(clean_value)
+                    
+            elif input_type == 'currency':
+                # Allow digits, decimal point, and currency symbols
+                clean_value = value.replace('$', '').replace(',', '')
+                try:
+                    float(clean_value)
+                except ValueError:
+                    # Remove invalid characters
+                    clean_value = ''.join(c for c in clean_value if c.isdigit() or c == '.')
+                    var.set(clean_value)
+                    
+        except Exception:
+            pass  # Ignore validation errors
+    
+    def on_annual_rate_change(self, event):
+        """Handle annual rate changes and update monthly rate."""
+        try:
+            annual_value = self.annual_rate_var.get().strip().replace('%', '')
+            if annual_value:
+                annual_rate = float(annual_value)
+                monthly_rate = annual_rate / 12
+                
+                # Update status label
+                if hasattr(self, 'rate_status_label'):
+                    self.rate_status_label.config(text=f"≈ {monthly_rate:.3f}% monthly")
+                    
+        except ValueError:
+            if hasattr(self, 'rate_status_label'):
+                self.rate_status_label.config(text="")
+    
+    def auto_calculate_monthly_rate(self):
+        """Auto-calculate monthly rate from annual rate."""
+        try:
+            annual_value = self.annual_rate_var.get().strip().replace('%', '')
+            if not annual_value:
+                messagebox.showwarning("Missing Value", "Please enter an annual rate first")
+                return
+                
+            annual_rate = float(annual_value)
+            monthly_rate = annual_rate / 12
+            
+            # Set the monthly rate
+            self.monthly_rate_var.set(f"{monthly_rate:.3f}")
+            
+            # Update status
+            if hasattr(self, 'rate_status_label'):
+                self.rate_status_label.config(text="[OK] Auto-calculated")
+                
+            self.status_var.set(f"Monthly rate auto-calculated: {monthly_rate:.3f}%")
+            
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Please enter a valid annual rate")
+    
+    def set_quick_amount(self, var, amount):
+        """Set a quick amount for principal fields."""
+        var.set(format_currency(amount))
+        self.status_var.set(f"Set amount: {format_currency(amount)}")
     
     def update_runtime(self):
         """Update runtime in title bar every second."""
@@ -827,11 +1264,11 @@ class InterestRateCalculator:
             # Remove topmost after a moment
             self.root.after(1000, lambda: self.root.attributes('-topmost', False))
             
-            print("✓ Window visibility ensured")
+            print("[OK] Window visibility ensured")
             
         except Exception as e:
             print(f"Warning: Could not ensure window visibility: {e}")
-    
+            
     def run(self):
         """Start the application."""
         try:
@@ -839,8 +1276,8 @@ class InterestRateCalculator:
             self.ensure_visible()
             
             # Print status
-            print("✓ Interest Rate Calculator is starting...")
-            print("✓ Window should be visible on your screen")
+            print("[OK] Interest Rate Calculator is starting...")
+            print("[OK] Window should be visible on your screen")
             
             # Start main loop
             self.root.mainloop()
@@ -862,20 +1299,21 @@ class InterestRateCalculator:
 class PaymentDialog:
     """Dialog for adding/editing payments."""
     
-    def __init__(self, parent, title, existing_data=None):
+    def __init__(self, parent, title, existing_data=None, available_invoices=None):
         self.result = None
+        self.available_invoices = available_invoices or []
         
         self.window = tk.Toplevel(parent)
         self.window.title(title)
-        self.window.geometry("450x300")  # Made larger to fit all fields
+        self.window.geometry("500x400")  # Made larger to fit invoice selection
         self.window.transient(parent)
         self.window.grab_set()
         
         # Center the window
         self.window.update_idletasks()
-        x = parent.winfo_x() + (parent.winfo_width() // 2) - (450 // 2)
-        y = parent.winfo_y() + (parent.winfo_height() // 2) - (300 // 2)
-        self.window.geometry(f"450x300+{x}+{y}")
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - (500 // 2)
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - (400 // 2)
+        self.window.geometry(f"500x400+{x}+{y}")
         
         self.create_widgets(existing_data)
         
@@ -982,6 +1420,24 @@ class InvoiceDialog:
         title_label = ttk.Label(main_frame, text="Invoice Information", font=("Arial", 12, "bold"))
         title_label.pack(pady=(0, 15))
         
+        # Invoice ID (auto-generated, display only)
+        id_frame = ttk.Frame(main_frame)
+        id_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(id_frame, text="Invoice ID:", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
+        
+        # Generate or use existing ID
+        if existing_data and 'id' in existing_data:
+            invoice_id = existing_data['id']
+            print(f"DEBUG: Using existing invoice ID: {invoice_id}")
+        else:
+            import uuid
+            invoice_id = f"INV-{str(uuid.uuid4())[:8].upper()}"
+            print(f"DEBUG: Generated new invoice ID: {invoice_id}")
+        
+        self.invoice_id = invoice_id
+        print(f"DEBUG: Set self.invoice_id = {self.invoice_id}")
+        ttk.Label(id_frame, text=invoice_id, foreground="blue").pack(side=tk.LEFT, padx=(10, 0))
+        
         # Date field
         date_frame = ttk.Frame(main_frame)
         date_frame.pack(fill=tk.X, pady=(0, 15))
@@ -1025,26 +1481,202 @@ class InvoiceDialog:
         
     def ok_clicked(self):
         """Handle Save button click."""
+        print("DEBUG: InvoiceDialog ok_clicked() called")
         try:
             # Validate required fields
-            if not self.date_var.get().strip():
+            date_val = self.date_var.get().strip()
+            desc_val = self.desc_var.get().strip()
+            amount_val = self.amount_var.get().strip()
+            
+            print(f"DEBUG: Form values - Date: '{date_val}', Desc: '{desc_val}', Amount: '{amount_val}'")
+            
+            if not date_val:
+                print("DEBUG: Date validation failed")
                 messagebox.showerror("Error", "Please enter a date")
                 return
-            if not self.desc_var.get().strip():
+            if not desc_val:
+                print("DEBUG: Description validation failed")
                 messagebox.showerror("Error", "Please enter a description")
                 return
-            if not self.amount_var.get().strip():
+            if not amount_val:
+                print("DEBUG: Amount validation failed")
                 messagebox.showerror("Error", "Please enter an amount")
                 return
+            
+            print(f"DEBUG: Creating result with invoice_id: {self.invoice_id}")
+            self.result = {
+                'id': self.invoice_id,
+                'date': date_val,
+                'desc': desc_val,
+                'amount': float(amount_val)
+            }
+            print(f"DEBUG: Result created: {self.result}")
+            self.window.destroy()
+            print("DEBUG: Dialog window destroyed")
+        except ValueError as e:
+            print(f"DEBUG: ValueError in ok_clicked: {e}")
+            messagebox.showerror("Error", "Please enter a valid amount")
+        except Exception as e:
+            print(f"DEBUG: Unexpected error in ok_clicked: {e}")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+
+class NewProjectDialog:
+    """Dialog for creating new projects with validation."""
+    
+    def __init__(self, parent):
+        self.result = None
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("Create New Project")
+        self.window.geometry("500x400")
+        self.window.transient(parent)
+        self.window.grab_set()
+        
+        # Center the window
+        self.window.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - (500 // 2)
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - (400 // 2)
+        self.window.geometry(f"500x400+{x}+{y}")
+        
+        self.create_widgets()
+        
+        # Wait for dialog to close
+        self.window.wait_window()
+        
+    def create_widgets(self):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="Create New Project", 
+                               font=("Arial", 14, "bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # Project Title (Required)
+        title_frame = ttk.LabelFrame(main_frame, text="Project Information", padding="10")
+        title_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Label(title_frame, text="Project Title: *", font=("Arial", 10, "bold")).pack(anchor=tk.W)
+        self.title_var = tk.StringVar()
+        title_entry = ttk.Entry(title_frame, textvariable=self.title_var, width=50, font=("Arial", 10))
+        title_entry.pack(fill=tk.X, pady=(5, 10))
+        title_entry.focus()  # Set focus to title field
+        
+        ttk.Label(title_frame, text="Description (Optional):", font=("Arial", 10)).pack(anchor=tk.W)
+        self.desc_var = tk.StringVar()
+        desc_entry = ttk.Entry(title_frame, textvariable=self.desc_var, width=50, font=("Arial", 10))
+        desc_entry.pack(fill=tk.X, pady=(5, 0))
+        
+        # Default Values (Optional)
+        defaults_frame = ttk.LabelFrame(main_frame, text="Default Values (Optional)", padding="10")
+        defaults_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Date fields
+        dates_frame = ttk.Frame(defaults_frame)
+        dates_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Payments Calculated Through Date
+        asof_frame = ttk.Frame(dates_frame)
+        asof_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Label(asof_frame, text="Payments Calculated Through Date (MM/DD/YYYY):").pack(anchor=tk.W)
+        self.as_of_date_var = tk.StringVar()
+        ttk.Entry(asof_frame, textvariable=self.as_of_date_var, width=20).pack(anchor=tk.W, pady=(2, 0))
+        
+        # Rates and principals
+        rates_frame = ttk.Frame(defaults_frame)
+        rates_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Grace Days
+        grace_frame = ttk.Frame(rates_frame)
+        grace_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        ttk.Label(grace_frame, text="Grace Days:").pack(anchor=tk.W)
+        self.grace_days_var = tk.StringVar(value="30")
+        ttk.Entry(grace_frame, textvariable=self.grace_days_var, width=10).pack(anchor=tk.W, pady=(2, 0))
+        
+        # Annual Rate
+        annual_frame = ttk.Frame(rates_frame)
+        annual_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Label(annual_frame, text="Annual Rate (%):").pack(anchor=tk.W)
+        self.annual_rate_var = tk.StringVar(value="18.0")
+        ttk.Entry(annual_frame, textvariable=self.annual_rate_var, width=10).pack(anchor=tk.W, pady=(2, 0))
+        
+        # Principal amounts
+        principals_frame = ttk.Frame(defaults_frame)
+        principals_frame.pack(fill=tk.X)
+        
+        # Note: Principal amounts will be entered as individual invoices after project creation
+        ttk.Label(principals_frame, text="Principal amounts will be managed through individual invoices.", 
+                 foreground="gray", font=("Arial", 9, "italic")).pack(pady=10)
+        
+        # Required field note
+        note_label = ttk.Label(main_frame, text="* Required field", 
+                              font=("Arial", 9, "italic"), foreground="gray")
+        note_label.pack(pady=(10, 0))
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        ttk.Button(button_frame, text="Create Project", command=self.ok_clicked, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked, 
+                  width=15).pack(side=tk.LEFT)
+        
+        # Bind Enter key to create project
+        self.window.bind('<Return>', lambda e: self.ok_clicked())
+        self.window.bind('<Escape>', lambda e: self.cancel_clicked())
+        
+    def ok_clicked(self):
+        """Handle Create Project button click."""
+        try:
+            # Validate required fields
+            title = self.title_var.get().strip()
+            if not title:
+                messagebox.showerror("Error", "Please enter a project title")
+                return
+                
+            # Validate date if provided
+            as_of_date = self.as_of_date_var.get().strip()
+            
+            if as_of_date:
+                try:
+                    datetime.strptime(as_of_date, '%m/%d/%Y')
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter payments calculated through date in MM/DD/YYYY format")
+                    return
+            
+            # Validate numeric fields
+            try:
+                grace_days = int(self.grace_days_var.get()) if self.grace_days_var.get().strip() else 30
+                annual_rate = float(self.annual_rate_var.get()) / 100 if self.annual_rate_var.get().strip() else 0.18
+                # Principal amounts will be managed through invoices
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numeric values")
+                return
+                
+            # Convert date to ISO format for storage
+            as_of_date_iso = convert_to_iso_date(as_of_date) if as_of_date else ''
                 
             self.result = {
-                'date': self.date_var.get(),
-                'desc': self.desc_var.get(),
-                'amount': float(self.amount_var.get())
+                'title': title,
+                'description': self.desc_var.get().strip(),
+                'as_of_date': as_of_date_iso,
+                'grace_days': grace_days,
+                'annual_rate': annual_rate,
+                'monthly_rate': annual_rate / 12  # Calculate monthly rate
             }
+            
             self.window.destroy()
-        except ValueError:
-            messagebox.showerror("Error", "Please enter a valid amount")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+            
+    def cancel_clicked(self):
+        """Handle Cancel button click."""
+        self.result = None
+        self.window.destroy()
 
 
 def main():
