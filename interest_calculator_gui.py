@@ -421,7 +421,7 @@ class InterestRateCalculator:
         self.create_action_buttons()
         
     def create_project_info_section(self):
-        """Create condensed project information section with dates, rates, and principals."""
+        """Create reorganized project information section with new layout."""
         self.info_frame = CollapsibleSection(self.content_frame, "Project Information")
         self.info_frame.pack(fill=tk.X, pady=(0, 5))
         
@@ -429,18 +429,20 @@ class InterestRateCalculator:
         info_content = ttk.Frame(self.info_frame.content, padding="10")
         self.info_frame.set_content(info_content)
         
+        # LINE 1: Project Title | Payments Calculated Through Date | Grace Days
+        line1_frame = ttk.Frame(info_content)
+        line1_frame.pack(fill=tk.X, pady=(0, 5))
+        
         # Project Title
-        ttk.Label(info_content, text="Project Title:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10), pady=2)
+        ttk.Label(line1_frame, text="Project Title:").pack(side=tk.LEFT)
         self.title_var = tk.StringVar()
-        title_entry = ttk.Entry(info_content, textvariable=self.title_var, width=50)
-        title_entry.grid(row=0, column=1, columnspan=3, sticky=tk.W, pady=2)
+        title_entry = ttk.Entry(line1_frame, textvariable=self.title_var, width=25)
+        title_entry.pack(side=tk.LEFT, padx=(5, 15))
         
-        # Payments Calculated Through Date Row with Date Picker
-        ttk.Label(info_content, text="Payments Calculated Through Date:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        
-        # Date entry frame with picker button
-        date_frame = ttk.Frame(info_content)
-        date_frame.grid(row=1, column=1, sticky=tk.W, pady=2)
+        # Payments Calculated Through Date
+        ttk.Label(line1_frame, text="Calc Through:").pack(side=tk.LEFT)
+        date_frame = ttk.Frame(line1_frame)
+        date_frame.pack(side=tk.LEFT, padx=(5, 15))
         
         self.as_of_date_var = tk.StringVar()
         date_entry = ttk.Entry(date_frame, textvariable=self.as_of_date_var, width=12)
@@ -451,31 +453,31 @@ class InterestRateCalculator:
                                     command=lambda: self.show_date_picker(self.as_of_date_var))
         date_picker_btn.pack(side=tk.LEFT, padx=(2, 0))
         
-        # Today button for quick date entry
+        # Today button
         today_btn = ttk.Button(date_frame, text="Today", width=6,
                               command=lambda: self.set_today_date(self.as_of_date_var))
         today_btn.pack(side=tk.LEFT, padx=(2, 0))
         
-        # Rates Row with enhanced validation
-        ttk.Label(info_content, text="Grace Days:").grid(row=2, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        
-        # Grace days with validation
-        grace_frame = ttk.Frame(info_content)
-        grace_frame.grid(row=2, column=1, sticky=tk.W, pady=2)
+        # Grace Days
+        ttk.Label(line1_frame, text="Grace Days:").pack(side=tk.LEFT)
+        grace_frame = ttk.Frame(line1_frame)
+        grace_frame.pack(side=tk.LEFT, padx=(5, 0))
         
         self.grace_days_var = tk.StringVar()
-        grace_entry = ttk.Entry(grace_frame, textvariable=self.grace_days_var, width=8)
+        grace_entry = ttk.Entry(grace_frame, textvariable=self.grace_days_var, width=6)
         grace_entry.pack(side=tk.LEFT)
         grace_entry.bind('<KeyRelease>', lambda e: self.validate_numeric_input(self.grace_days_var, 'integer'))
         
-        # Grace days info label
         ttk.Label(grace_frame, text="days", foreground="gray").pack(side=tk.LEFT, padx=(2, 0))
         
-        # Annual Rate with auto-calculation
-        ttk.Label(info_content, text="Annual Rate (%):").grid(row=2, column=2, sticky=tk.W, padx=(10, 5), pady=2)
+        # LINE 2: Annual Rate | Monthly Rate  
+        line2_frame = ttk.Frame(info_content)
+        line2_frame.pack(fill=tk.X, pady=(0, 5))
         
-        annual_frame = ttk.Frame(info_content)
-        annual_frame.grid(row=2, column=3, sticky=tk.W, pady=2)
+        # Annual Rate
+        ttk.Label(line2_frame, text="Annual Rate (%):").pack(side=tk.LEFT)
+        annual_frame = ttk.Frame(line2_frame)
+        annual_frame.pack(side=tk.LEFT, padx=(5, 20))
         
         self.annual_rate_var = tk.StringVar()
         annual_rate_entry = ttk.Entry(annual_frame, textvariable=self.annual_rate_var, width=8)
@@ -488,11 +490,10 @@ class InterestRateCalculator:
                                   command=self.auto_calculate_monthly_rate)
         auto_calc_btn.pack(side=tk.LEFT, padx=(2, 0))
         
-        # Monthly Rate Row with validation
-        ttk.Label(info_content, text="Monthly Rate (%):").grid(row=3, column=0, sticky=tk.W, padx=(0, 5), pady=2)
-        
-        monthly_frame = ttk.Frame(info_content)
-        monthly_frame.grid(row=3, column=1, sticky=tk.W, pady=2)
+        # Monthly Rate
+        ttk.Label(line2_frame, text="Monthly Rate (%):").pack(side=tk.LEFT)
+        monthly_frame = ttk.Frame(line2_frame)
+        monthly_frame.pack(side=tk.LEFT, padx=(5, 0))
         
         self.monthly_rate_var = tk.StringVar()
         monthly_rate_entry = ttk.Entry(monthly_frame, textvariable=self.monthly_rate_var, width=8)
@@ -504,8 +505,32 @@ class InterestRateCalculator:
         self.rate_status_label = ttk.Label(monthly_frame, text="", foreground="gray")
         self.rate_status_label.pack(side=tk.LEFT, padx=(5, 0))
         
-        # Note: Principal amounts are now managed through individual invoices
-        # Each invoice represents a principal amount that accrues interest from its invoice date
+        # LINE 3: Description (wrapping text)
+        line3_frame = ttk.Frame(info_content)
+        line3_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        ttk.Label(line3_frame, text="Description:").pack(anchor=tk.W)
+        
+        # Text widget for wrapping description
+        desc_frame = ttk.Frame(line3_frame)
+        desc_frame.pack(fill=tk.X, pady=(2, 0))
+        
+        self.description_text = tk.Text(desc_frame, height=2, width=60, wrap=tk.WORD)
+        self.description_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Scrollbar for description
+        desc_scrollbar = ttk.Scrollbar(desc_frame, orient=tk.VERTICAL, command=self.description_text.yview)
+        self.description_text.configure(yscrollcommand=desc_scrollbar.set)
+        desc_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Note about invoices
+        note_frame = ttk.Frame(info_content)
+        note_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        note_label = ttk.Label(note_frame, 
+                              text="Note: Principal amounts are managed through individual invoices below.",
+                              foreground="gray", font=("Arial", 9, "italic"))
+        note_label.pack(anchor=tk.W)
     
     def format_annual_rate(self, event=None):
         """Format annual rate as percentage"""
@@ -578,6 +603,9 @@ class InterestRateCalculator:
         # Pack table and scrollbar
         self.invoices_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         invoice_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Bind double-click for editing
+        self.invoices_tree.bind('<Double-1>', self.on_invoice_double_click)
     
     def add_invoice(self):
         """Add a new invoice."""
@@ -603,8 +631,24 @@ class InterestRateCalculator:
             self.invoices_tree.insert('', 'end', values=values)
             print("DEBUG: Invoice inserted into tree")
             
-            # Update status
-            self.status_var.set(f"Invoice {dialog.result['id']} added successfully")
+            # CRITICAL: Also add to the current project data
+            if hasattr(self, 'current_project') and self.current_project:
+                if 'invoices' not in self.current_project:
+                    self.current_project['invoices'] = []
+                
+                # Add the new invoice to project data
+                self.current_project['invoices'].append({
+                    'id': dialog.result['id'],
+                    'date': convert_to_iso_date(dialog.result['date']),
+                    'desc': dialog.result['desc'],
+                    'amount': dialog.result['amount']
+                })
+                
+                # Auto-save the project
+                self.save_project()
+                self.status_var.set(f"Invoice {dialog.result['id']} added and saved")
+            else:
+                self.status_var.set(f"Invoice {dialog.result['id']} added (save project to persist)")
         else:
             print("DEBUG: No dialog result - user cancelled or error occurred")
             
@@ -665,20 +709,29 @@ class InterestRateCalculator:
         
         ttk.Button(payment_btn_frame, text="Add Payment", command=self.add_payment, width=15).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(payment_btn_frame, text="Edit Payment", command=self.edit_payment, width=15).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(payment_btn_frame, text="Delete Payment", command=self.delete_payment, width=15).pack(side=tk.LEFT)
+        ttk.Button(payment_btn_frame, text="Delete Payment", command=self.delete_payment, width=15).pack(side=tk.LEFT, padx=(0, 10))
+        # NEW: Payment assignment functionality
+        ttk.Button(payment_btn_frame, text="Assign to Invoice", command=self.assign_payment_to_invoice, width=18).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(payment_btn_frame, text="View Assignments", command=self.view_payment_assignments, width=18).pack(side=tk.LEFT)
         
-        # Payment table with proper formatting
-        columns = ('Date', 'Description', 'Amount')
+        # Payment table with assignment information
+        columns = ('Date', 'Description', 'Amount', 'Assigned', 'Unassigned', 'Status')
         self.payments_tree = ttk.Treeview(payments_content, columns=columns, show='headings', height=8)
         
         # Configure column widths and headings
         self.payments_tree.heading('Date', text='Date')
         self.payments_tree.heading('Description', text='Description')
-        self.payments_tree.heading('Amount', text='Amount')
+        self.payments_tree.heading('Amount', text='Total Amount')
+        self.payments_tree.heading('Assigned', text='Assigned')
+        self.payments_tree.heading('Unassigned', text='Unassigned')
+        self.payments_tree.heading('Status', text='Status')
         
-        self.payments_tree.column('Date', width=120, anchor='center')
-        self.payments_tree.column('Description', width=200, anchor='center')
-        self.payments_tree.column('Amount', width=120, anchor='center')
+        self.payments_tree.column('Date', width=100, anchor='center')
+        self.payments_tree.column('Description', width=180, anchor='center')
+        self.payments_tree.column('Amount', width=100, anchor='center')
+        self.payments_tree.column('Assigned', width=100, anchor='center')
+        self.payments_tree.column('Unassigned', width=100, anchor='center')
+        self.payments_tree.column('Status', width=80, anchor='center')
         
         # Add scrollbar
         scrollbar = ttk.Scrollbar(payments_content, orient=tk.VERTICAL, command=self.payments_tree.yview)
@@ -687,6 +740,9 @@ class InterestRateCalculator:
         # Pack table and scrollbar
         self.payments_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Bind double-click for editing
+        self.payments_tree.bind('<Double-1>', self.on_payment_double_click)
         
     def create_action_buttons(self):
         """Create action buttons section."""
@@ -700,71 +756,300 @@ class InterestRateCalculator:
     def on_double_click(self, event):
         """Handle double-click on project list."""
         self.edit_project()
+    
+    def on_invoice_double_click(self, event):
+        """Handle double-click on invoice table."""
+        selection = self.invoices_tree.selection()
+        if not selection:
+            return
+        
+        # Get the selected item
+        item_id = selection[0]
+        values = self.invoices_tree.item(item_id, 'values')
+        
+        if values:
+            # Parse the invoice data from the tree
+            existing_data = {
+                'id': values[0],
+                'date': values[1],
+                'desc': values[2],
+                'amount': float(values[3].replace('$', '').replace(',', ''))  # Remove $ and commas
+            }
+            
+            # Open edit dialog
+            dialog = InvoiceDialog(self.root, "Edit Invoice", existing_data)
+            self.root.wait_window(dialog.window)
+            
+            if dialog.result:
+                # Update the tree with new values
+                new_values = (
+                    dialog.result['id'],
+                    dialog.result['date'], 
+                    dialog.result['desc'],
+                    f"${dialog.result['amount']:,.2f}"
+                )
+                self.invoices_tree.item(item_id, values=new_values)
+                
+                # CRITICAL: Also update the underlying project data
+                if hasattr(self, 'current_project') and self.current_project and 'invoices' in self.current_project:
+                    # Find and update the corresponding invoice in the project data
+                    invoice_updated = False
+                    for invoice in self.current_project['invoices']:
+                        if invoice.get('id') == existing_data['id']:  # Match by original ID
+                            invoice['id'] = dialog.result['id']
+                            invoice['date'] = convert_to_iso_date(dialog.result['date'])
+                            invoice['desc'] = dialog.result['desc']
+                            invoice['amount'] = dialog.result['amount']
+                            invoice_updated = True
+                            break
+                    
+                    # Debug: write to file to confirm update
+                    debug_file = Path("debug_invoice_edit.txt")
+                    with open(debug_file, "w") as df:
+                        df.write(f"DEBUG: Invoice edit attempt\n")
+                        df.write(f"DEBUG: Original ID: {existing_data['id']}\n")
+                        df.write(f"DEBUG: New data: {dialog.result}\n")
+                        df.write(f"DEBUG: Invoice updated in current_project: {invoice_updated}\n")
+                        df.write(f"DEBUG: Current project invoices count: {len(self.current_project['invoices'])}\n")
+                        for i, inv in enumerate(self.current_project['invoices']):
+                            df.write(f"DEBUG: Invoice {i}: {inv}\n")
+                
+                # Auto-save the project after editing
+                try:
+                    self.save_project()
+                    self.status_var.set(f"Invoice {dialog.result['id']} updated and saved")
+                except Exception as e:
+                    messagebox.showerror("Save Error", f"Failed to save project: {str(e)}")
+                    self.status_var.set(f"Invoice updated but save failed: {str(e)}")
+    
+    def on_payment_double_click(self, event):
+        """Handle double-click on payment table."""
+        selection = self.payments_tree.selection()
+        if not selection:
+            return
+        
+        # Get the selected item
+        item_id = selection[0]
+        values = self.payments_tree.item(item_id, 'values')
+        
+        if values:
+            # Parse the payment data from the tree
+            existing_data = {
+                'date': values[0],
+                'desc': values[1],
+                'amount': float(values[2].replace('$', '').replace(',', ''))  # Remove $ and commas
+            }
+            
+            # Open edit dialog
+            dialog = PaymentDialog(self.root, "Edit Payment", existing_data)
+            self.root.wait_window(dialog.window)
+            
+            if dialog.result:
+                # Update the tree with new values - we need to recalculate assigned/unassigned amounts
+                # For now, let's just update the basic fields and keep the assignment status
+                new_values = (
+                    dialog.result['date'],
+                    dialog.result['desc'],
+                    f"${dialog.result['amount']:,.2f}",
+                    values[3],  # Keep existing assigned amount
+                    values[4],  # Keep existing unassigned amount  
+                    values[5]   # Keep existing status
+                )
+                self.payments_tree.item(item_id, values=new_values)
+                
+                # CRITICAL: Also update the underlying project data
+                if hasattr(self, 'current_project') and self.current_project and 'payments' in self.current_project:
+                    # Find and update the corresponding payment in the project data
+                    for payment in self.current_project['payments']:
+                        # Match by date and original description (since payments don't have unique IDs in tree)
+                        if (payment.get('date') == convert_to_iso_date(existing_data['date']) and 
+                            payment.get('description', payment.get('desc', '')) == existing_data['desc']):
+                            payment['date'] = convert_to_iso_date(dialog.result['date'])
+                            # Update both possible field names for compatibility
+                            payment['description'] = dialog.result['desc']
+                            payment['desc'] = dialog.result['desc'] 
+                            payment['amount'] = dialog.result['amount']
+                            break
+                
+                # Auto-save the project after editing
+                self.save_project()
+                self.status_var.set(f"Payment updated and saved")
         
     def load_project_data(self, project_data, project_file):
         """Load project data into editor form."""
+        # Write debug info to file so we can see it even if app crashes
+        debug_file = Path("debug_load.txt")
         try:
-            self.current_project = project_data.copy()
-            self.current_project_file = project_file
-            
-            # Check if form variables exist (form must be created first)
-            if not hasattr(self, 'title_var'):
-                messagebox.showerror("Error", "Form not initialized. Please try again.")
-                return
-            
-            # Load basic data
-            self.title_var.set(project_data.get('title', ''))
-            self.as_of_date_var.set(convert_to_american_date(project_data.get('as_of_date', '')))
-            self.grace_days_var.set(str(project_data.get('grace_days', '')))
-            
-            # Format rates as percentages
-            annual_rate = project_data.get('annual_rate', '')
-            if annual_rate:
-                self.annual_rate_var.set(format_percentage(annual_rate))
-            
-            monthly_rate = project_data.get('monthly_rate', '')
-            if monthly_rate:
-                self.monthly_rate_var.set(format_percentage(monthly_rate))
-            
-            # Format principals as currency
-            # Principal amounts are now managed through individual invoices
-            
-            # Load invoices and payments
-            self.load_invoices(project_data.get('invoices', []))
-            self.load_payments(project_data.get('payments', []))
+            with open(debug_file, "w") as df:
+                df.write("DEBUG: Starting load_project_data\n")
+                df.flush()
+                
+                # Use deep copy to ensure we have a proper mutable copy
+                import copy
+                self.current_project = copy.deepcopy(project_data)
+                self.current_project_file = project_file
+                
+                # Debug: Log the loaded project structure
+                df.write(f"DEBUG: Loaded current_project with {len(self.current_project.get('invoices', []))} invoices\n")
+                for i, inv in enumerate(self.current_project.get('invoices', [])):
+                    df.write(f"DEBUG: Loaded invoice {i}: ID={inv.get('id')}, desc='{inv.get('desc')}'\n")
+                
+                # Check if form variables exist (form must be created first)
+                df.write("DEBUG: Checking form variables\n")
+                df.flush()
+                if not hasattr(self, 'title_var'):
+                    df.write("DEBUG: Form variables not found\n")
+                    df.flush()
+                    messagebox.showerror("Error", "Form not initialized. Please try again.")
+                    return
+                
+                df.write("DEBUG: Loading basic data\n")
+                df.flush()
+                # Load basic data
+                self.title_var.set(project_data.get('title', ''))
+                self.as_of_date_var.set(convert_to_american_date(project_data.get('as_of_date', '')))
+                self.grace_days_var.set(str(project_data.get('grace_days', '')))
+                
+                df.write("DEBUG: Loading description\n")
+                df.flush()
+                # Load description into text widget
+                if hasattr(self, 'description_text'):
+                    self.description_text.delete('1.0', tk.END)
+                    self.description_text.insert('1.0', project_data.get('description', ''))
+                
+                df.write("DEBUG: Loading rates\n")
+                df.flush()
+                # Format rates as percentages
+                annual_rate = project_data.get('annual_rate', '')
+                if annual_rate:
+                    self.annual_rate_var.set(format_percentage(annual_rate))
+                
+                monthly_rate = project_data.get('monthly_rate', '')
+                if monthly_rate:
+                    self.monthly_rate_var.set(format_percentage(monthly_rate))
+                
+                df.write("DEBUG: Loading invoices\n")
+                df.flush()
+                # Load invoices and payments
+                self.load_invoices(project_data.get('invoices', []))
+                
+                df.write("DEBUG: Loading payments\n")
+                df.flush()
+                self.load_payments(project_data.get('payments', []))
+                
+                df.write("DEBUG: load_project_data completed successfully\n")
+                df.flush()
+                
+                # Add post-load monitoring
+                self.root.after(2000, lambda: self.debug_post_load("2 seconds post-load"))
+                self.root.after(10000, lambda: self.debug_post_load("10 seconds post-load"))
+                self.root.after(30000, lambda: self.debug_post_load("30 seconds post-load"))
         except Exception as e:
+            # Write error to debug file
+            with open(debug_file, "a") as df:
+                df.write(f"DEBUG: Exception in load_project_data: {e}\n")
+                import traceback
+                df.write(f"DEBUG: Traceback:\n{traceback.format_exc()}\n")
             messagebox.showerror("Error", f"Failed to load project data: {str(e)}")
+    
+    def debug_post_load(self, message):
+        """Debug method to track app state after project loading"""
+        try:
+            debug_file = Path("debug_load.txt")
+            with open(debug_file, "a") as df:
+                df.write(f"DEBUG: {message} - App still running\n")
+                df.write(f"  - Window exists: {self.root.winfo_exists() if hasattr(self, 'root') and self.root else False}\n")
+                df.write(f"  - Current project: {bool(self.current_project)}\n")
+                df.flush()
+        except Exception as e:
+            # Silently handle debug errors
+            pass
     
     def load_invoices(self, invoices):
         """Load invoices into the tree view."""
-        # Clear existing items
-        for item in self.invoices_tree.get_children():
-            self.invoices_tree.delete(item)
-            
-        # Add invoices
-        for invoice in invoices:
-            # Generate ID if missing (for backward compatibility)
-            invoice_id = invoice.get('id', f"INV-{len(invoices):04d}")
-            self.invoices_tree.insert('', 'end', values=(
-                invoice_id,
-                convert_to_american_date(invoice.get('date', '')),
-                invoice.get('desc', ''),
-                f"${invoice.get('amount', 0):,.2f}"
-            ))
+        try:
+            print(f"DEBUG: Loading {len(invoices)} invoices")
+            # Clear existing items
+            for item in self.invoices_tree.get_children():
+                self.invoices_tree.delete(item)
+                
+            # Add invoices
+            for i, invoice in enumerate(invoices):
+                print(f"DEBUG: Processing invoice {i}: {invoice.get('id', 'No ID')}")
+                # Generate ID if missing (for backward compatibility)
+                invoice_id = invoice.get('id', f"INV-{len(invoices):04d}")
+                self.invoices_tree.insert('', 'end', values=(
+                    invoice_id,
+                    convert_to_american_date(invoice.get('date', '')),
+                    invoice.get('desc', ''),
+                    f"${invoice.get('amount', 0):,.2f}"
+                ))
+            print("DEBUG: Invoices loaded successfully")
+        except Exception as e:
+            print(f"DEBUG: Error in load_invoices: {e}")
+            import traceback
+            traceback.print_exc()
         
     def load_payments(self, payments):
-        """Load payments into the tree view."""
-        # Clear existing items
-        for item in self.payments_tree.get_children():
-            self.payments_tree.delete(item)
-            
-        # Add payments
-        for payment in payments:
-            self.payments_tree.insert('', 'end', values=(
-                convert_to_american_date(payment.get('date', '')),
-                payment.get('desc', ''),
-                f"${payment.get('amount', 0):,.2f}"
-            ))
+        """Load payments into the tree view with assignment information."""
+        try:
+            print(f"DEBUG: Loading {len(payments)} payments")
+            # Clear existing items
+            for item in self.payments_tree.get_children():
+                self.payments_tree.delete(item)
+                
+            # Add payments with assignment information
+            for i, payment in enumerate(payments):
+                print(f"DEBUG: Processing payment {i}: {payment.get('description', payment.get('desc', 'No Desc'))}")
+            try:
+                # Calculate assignment totals with better error handling
+                total_assigned = 0
+                for assignment in payment.get('assignments', []):
+                    assigned_amount = assignment.get('assigned_amount', 0)
+                    if isinstance(assigned_amount, (int, float)):
+                        total_assigned += assigned_amount
+                    else:
+                        # Try to convert string to float
+                        total_assigned += float(str(assigned_amount))
+                
+                unassigned = payment.get('unassigned_amount', payment.get('amount', 0))
+                
+                # Ensure unassigned is a number
+                if not isinstance(unassigned, (int, float)):
+                    unassigned = float(str(unassigned))
+                
+                # Determine status
+                if total_assigned == 0:
+                    status = 'Unassigned'
+                elif unassigned <= 0.01:  # Handle floating point precision
+                    status = 'Fully Assigned'
+                else:
+                    status = 'Partial'
+                
+                self.payments_tree.insert('', 'end', values=(
+                    convert_to_american_date(payment.get('date', '')),
+                    payment.get('description', payment.get('desc', '')),  # Handle both field names
+                    f"${payment.get('amount', 0):,.2f}",
+                    f"${total_assigned:,.2f}",
+                    f"${unassigned:,.2f}",
+                    status
+                ))
+            except (ValueError, TypeError) as e:
+                print(f"Warning: Error processing payment {payment.get('description', 'Unknown')}: {e}")
+                # Add with default values if there's an error
+                self.payments_tree.insert('', 'end', values=(
+                    convert_to_american_date(payment.get('date', '')),
+                    payment.get('description', payment.get('desc', 'Error')),
+                    f"${payment.get('amount', 0):,.2f}",
+                    "$0.00",
+                    f"${payment.get('amount', 0):,.2f}",
+                    'Error'
+                ))
+            print("DEBUG: Payments loaded successfully")
+        except Exception as e:
+            print(f"DEBUG: Error in load_payments: {e}")
+            import traceback
+            traceback.print_exc()
             
     def add_payment(self):
         """Add a new payment."""
@@ -774,12 +1059,37 @@ class InterestRateCalculator:
         self.root.wait_window(dialog.window)
         
         if dialog.result:
-            # Add to tree view
+            # Add to tree view with all columns
             self.payments_tree.insert('', 'end', values=(
                 dialog.result['date'],
                 dialog.result['desc'],
-                f"${dialog.result['amount']:,.2f}"
+                f"${dialog.result['amount']:,.2f}",
+                "$0.00",  # No assignments yet
+                f"${dialog.result['amount']:,.2f}",  # All unassigned
+                "Unassigned"  # Status
             ))
+            
+            # CRITICAL: Also add to the current project data
+            if hasattr(self, 'current_project') and self.current_project:
+                if 'payments' not in self.current_project:
+                    self.current_project['payments'] = []
+                
+                # Add the new payment to project data
+                import uuid
+                self.current_project['payments'].append({
+                    'id': f"PAY-{str(uuid.uuid4())[:8].upper()}",
+                    'date': convert_to_iso_date(dialog.result['date']),
+                    'description': dialog.result['desc'],
+                    'amount': dialog.result['amount'],
+                    'assignments': [],
+                    'unassigned_amount': dialog.result['amount']
+                })
+                
+                # Auto-save the project
+                self.save_project()
+                self.status_var.set(f"Payment added and saved")
+            else:
+                self.status_var.set(f"Payment added (save project to persist)")
             
     def edit_payment(self):
         """Edit selected payment."""
@@ -820,58 +1130,344 @@ class InterestRateCalculator:
             
         if messagebox.askyesno("Delete Payment", "Are you sure you want to delete this payment?"):
             self.payments_tree.delete(selection[0])
+    
+    def assign_payment_to_invoice(self):
+        """Assign selected payment to an invoice - CRITICAL BUSINESS FUNCTIONALITY"""
+        selection = self.payments_tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a payment to assign")
+            return
+        
+        # Get selected payment data from tree
+        item_values = self.payments_tree.item(selection[0])['values']
+        payment_date = item_values[0]
+        payment_desc = item_values[1]
+        payment_amount_str = item_values[2].replace('$', '').replace(',', '')
+        unassigned_str = item_values[4].replace('$', '').replace(',', '')
+        
+        try:
+            unassigned_amount = float(unassigned_str)
+            if unassigned_amount <= 0:
+                messagebox.showwarning("No Unassigned Amount", "This payment is fully assigned. Use 'View Assignments' to manage existing assignments.")
+                return
+        except ValueError:
+            messagebox.showerror("Error", "Invalid payment amount format")
+            return
+        
+        # Create payment assignment dialog
+        dialog = PaymentAssignmentDialog(self.root, payment_desc, unassigned_amount, self.get_available_invoices())
+        
+        # Wait for dialog completion
+        self.root.wait_window(dialog.window)
+        
+        if dialog.result:
+            # Apply the assignment using the calculation engine
+            self.apply_payment_assignment(payment_date, payment_desc, dialog.result)
+    
+    def get_available_invoices(self):
+        """Get list of invoices available for payment assignment"""
+        invoices = []
+        for item in self.invoices_tree.get_children():
+            values = self.invoices_tree.item(item)['values']
+            invoice_id = values[0]
+            invoice_desc = values[2] 
+            invoice_amount = values[3].replace('$', '').replace(',', '')
+            
+            invoices.append({
+                'id': invoice_id,
+                'description': invoice_desc,
+                'amount': float(invoice_amount)
+            })
+        
+        return invoices
+    
+    def apply_payment_assignment(self, payment_date, payment_desc, assignment_data):
+        """Apply payment assignment and update the project data"""
+        try:
+            # Import the calculation engine
+            from interest_calculation_engine import InterestCalculationEngine
+            
+            # Find the payment in current project data
+            if not self.current_project:
+                messagebox.showerror("Error", "No project loaded")
+                return
+            
+            payment_found = None
+            for payment in self.current_project.get('payments', []):
+                if (payment.get('description', payment.get('desc', '')) == payment_desc and 
+                    payment.get('date', '') == convert_to_iso_date(payment_date)):
+                    payment_found = payment
+                    break
+            
+            if not payment_found:
+                messagebox.showerror("Error", "Could not find payment in project data")
+                return
+            
+            # Find the target invoice
+            invoice_found = None
+            for invoice in self.current_project.get('invoices', []):
+                if invoice['id'] == assignment_data['invoice_id']:
+                    invoice_found = invoice
+                    break
+            
+            if not invoice_found:
+                messagebox.showerror("Error", "Could not find target invoice")
+                return
+            
+            # Initialize calculation engine with project parameters
+            engine = InterestCalculationEngine(
+                monthly_rate=self.current_project.get('monthly_rate', 0.015),
+                annual_rate=self.current_project.get('annual_rate', 0.18),
+                grace_days=self.current_project.get('grace_days', 30)
+            )
+            
+            # Apply the payment assignment
+            updated_invoice, updated_payment = engine.apply_payment_to_invoice(
+                invoice_found,
+                payment_found,
+                assignment_data['assigned_amount'],
+                assignment_data['assignment_date'],
+                assignment_data.get('notes', '')
+            )
+            
+            # Update the project data
+            for i, invoice in enumerate(self.current_project['invoices']):
+                if invoice['id'] == updated_invoice['id']:
+                    self.current_project['invoices'][i] = updated_invoice
+                    break
+            
+            for i, payment in enumerate(self.current_project['payments']):
+                if payment['id'] == updated_payment['id']:
+                    self.current_project['payments'][i] = updated_payment
+                    break
+            
+            # Refresh the UI displays
+            self.load_invoices(self.current_project.get('invoices', []))
+            self.load_payments(self.current_project.get('payments', []))
+            
+            # Show success message with calculation details
+            messagebox.showinfo("Assignment Successful", 
+                f"Payment assignment completed!\n\n"
+                f"Payment: ${assignment_data['assigned_amount']:,.2f}\n"
+                f"Applied to: {invoice_found['description']}\n"
+                f"Assignment Date: {assignment_data['assignment_date']}\n\n"
+                f"Invoice Status: {updated_invoice['status']}\n"
+                f"Invoice Balance: ${updated_invoice['balance']:,.2f}\n"
+                f"Payment Unassigned: ${updated_payment['unassigned_amount']:,.2f}")
+            
+            self.status_var.set(f"Payment assigned: ${assignment_data['assigned_amount']:,.2f} to {invoice_found['id']}")
+            
+        except Exception as e:
+            messagebox.showerror("Assignment Error", f"Failed to assign payment: {str(e)}")
+    
+    def view_payment_assignments(self):
+        """View and manage payment assignments"""
+        selection = self.payments_tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a payment to view assignments")
+            return
+        
+        # Get payment data
+        item_values = self.payments_tree.item(selection[0])['values']
+        payment_desc = item_values[1]
+        
+        # Find payment in project data
+        payment_found = None
+        if self.current_project:
+            for payment in self.current_project.get('payments', []):
+                if payment.get('description', payment.get('desc', '')) == payment_desc:
+                    payment_found = payment
+                    break
+        
+        if not payment_found:
+            messagebox.showerror("Error", "Could not find payment in project data")
+            return
+        
+        # Create assignment viewer dialog
+        dialog = PaymentAssignmentViewerDialog(self.root, payment_found, self.current_project.get('invoices', []))
+        self.root.wait_window(dialog.window)
+        
+        # Handle reassignment or removal results
+        if dialog.result:
+            self.handle_payment_reassignment(dialog.result, payment_found)
+            self.refresh_payment_display()
+    
+    def handle_payment_reassignment(self, result, payment):
+        """Handle payment reassignment or removal operations"""
+        try:
+            if result['action'] == 'remove':
+                # Remove assignment and add amount back to unassigned
+                assignments = payment.get('assignments', [])
+                invoice_id = result['invoice_id']
+                amount = result['amount']
+                
+                # Find and remove the assignment
+                for i, assignment in enumerate(assignments):
+                    if assignment['invoice_id'] == invoice_id:
+                        assignments.pop(i)
+                        payment['unassigned_amount'] += amount
+                        self.status_var.set(f"Assignment removed: ${amount:,.2f} returned to unassigned")
+                        break
+                        
+            elif result['action'] == 'reassign':
+                # Move assignment from one invoice to another
+                assignments = payment.get('assignments', [])
+                old_invoice_id = result['old_invoice_id']
+                new_invoice_id = result['new_invoice_id']
+                amount = result['amount']
+                date = result['date']
+                notes = result['notes']
+                
+                # Find and update the assignment
+                for assignment in assignments:
+                    if assignment['invoice_id'] == old_invoice_id:
+                        assignment['invoice_id'] = new_invoice_id
+                        assignment['assignment_date'] = convert_to_iso_date(date)
+                        assignment['notes'] = notes
+                        self.status_var.set(f"Payment reassigned: ${amount:,.2f} moved from {old_invoice_id} to {new_invoice_id}")
+                        break
+                        
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to process reassignment: {str(e)}")
+    
+    def refresh_payment_display(self):
+        """Refresh the payment table display after reassignment changes"""
+        if not hasattr(self, 'payments_tree'):
+            return
+            
+        # Clear existing payments
+        for item in self.payments_tree.get_children():
+            self.payments_tree.delete(item)
+        
+        # Reload payments from current project data
+        if self.current_project and 'payments' in self.current_project:
+            for payment in self.current_project['payments']:
+                # Calculate assigned and unassigned amounts
+                total_assigned = sum(assignment.get('assigned_amount', 0) 
+                                   for assignment in payment.get('assignments', []))
+                unassigned_amount = payment.get('unassigned_amount', 0)
+                total_amount = payment.get('amount', 0)
+                
+                # Determine status
+                if unassigned_amount <= 0.01:
+                    status = "Fully Assigned"
+                elif total_assigned <= 0.01:
+                    status = "Unassigned"
+                else:
+                    status = "Partially Assigned"
+                
+                values = (
+                    convert_to_american_date(payment.get('date', '')),
+                    payment.get('description', payment.get('desc', '')),
+                    f"${total_amount:,.2f}",
+                    f"${total_assigned:,.2f}",
+                    f"${unassigned_amount:,.2f}",
+                    status
+                )
+                
+                self.payments_tree.insert('', 'end', values=values)
             
     def save_project(self):
         """Save project data."""
+        # Write debug info to a file so we can see it even if app crashes
+        debug_file = Path("debug_save.txt")
         try:
-            # Collect form data
-            project_data = {
-                'title': self.title_var.get(),
-                'as_of_date': convert_to_iso_date(self.as_of_date_var.get()),
-                'grace_days': int(self.grace_days_var.get()) if self.grace_days_var.get() else 0,
-                'annual_rate': parse_percentage(self.annual_rate_var.get()),
-                'monthly_rate': parse_percentage(self.monthly_rate_var.get()),
-                'invoices': [],
-                'payments': []
-            }
-            
-            # Collect invoices from tree view
-            for item in self.invoices_tree.get_children():
-                values = self.invoices_tree.item(item)['values']
-                invoice = {
-                    'id': values[0],
-                    'date': convert_to_iso_date(values[1]),
-                    'desc': values[2],
-                    'amount': float(values[3].replace('$', '').replace(',', ''))
+            with open(debug_file, "w") as df:
+                df.write("DEBUG: Starting save_project\n")
+                df.flush()
+                
+                # Collect form data
+                df.write("DEBUG: Collecting form data\n")
+                df.flush()
+                project_data = {
+                    'title': self.title_var.get(),
+                    'description': self.description_text.get('1.0', tk.END).strip() if hasattr(self, 'description_text') else '',
+                    'as_of_date': convert_to_iso_date(self.as_of_date_var.get()),
+                    'grace_days': int(self.grace_days_var.get()) if self.grace_days_var.get() else 0,
+                    'annual_rate': parse_percentage(self.annual_rate_var.get()),
+                    'monthly_rate': parse_percentage(self.monthly_rate_var.get()),
+                    'invoices': [],
+                    'payments': []
                 }
-                project_data['invoices'].append(invoice)
+                
+                # Use existing invoice data from current_project if available (to preserve edits)
+                if hasattr(self, 'current_project') and self.current_project and 'invoices' in self.current_project:
+                    df.write("DEBUG: Using current_project invoice data\n")
+                    df.flush()
+                    project_data['invoices'] = self.current_project['invoices'].copy()
+                    # Debug: Log what we're saving
+                    for i, inv in enumerate(project_data['invoices']):
+                        df.write(f"DEBUG: Saving invoice {i}: ID={inv.get('id')}, desc={inv.get('desc')}\n")
+                else:
+                    # Fallback: Collect invoices from tree view
+                    df.write("DEBUG: Collecting invoices from tree view (fallback)\n")
+                    df.flush()
+                    for item in self.invoices_tree.get_children():
+                        values = self.invoices_tree.item(item)['values']
+                        df.write(f"DEBUG: Invoice values: {values}\n")
+                        df.flush()
+                        invoice = {
+                            'id': values[0],
+                            'date': convert_to_iso_date(values[1]),
+                            'desc': values[2],
+                            'amount': float(values[3].replace('$', '').replace(',', ''))
+                        }
+                        project_data['invoices'].append(invoice)
             
-            # Collect payments from tree view
-            for item in self.payments_tree.get_children():
-                values = self.payments_tree.item(item)['values']
-                payment = {
-                    'date': convert_to_iso_date(values[0]),
-                    'desc': values[1],
-                    'amount': float(values[2].replace('$', '').replace(',', ''))
-                }
-                project_data['payments'].append(payment)
-            
-            # Determine file path
-            if not self.current_project_file:
-                # New project - create filename from title
-                safe_title = "".join(c for c in project_data['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                safe_title = safe_title.replace(' ', '-').lower()
-                self.current_project_file = self.projects_dir / f"{safe_title}.json"
-            
-            # Save to file
-            with open(self.current_project_file, 'w') as f:
-                json.dump(project_data, f, indent=2)
-            
-            messagebox.showinfo("Success", "Project saved successfully!")
-            self.load_projects()  # Refresh project list
-            self.status_var.set(f"Saved project: {project_data['title']}")
-            
+                # Collect payments from tree view - properly handle the 6-column format
+                df.write("DEBUG: Collecting payments from tree view\n")
+                df.flush()
+                if hasattr(self, 'current_project') and self.current_project and 'payments' in self.current_project:
+                    # Use the original payment data from current_project to preserve assignments
+                    df.write("DEBUG: Using current_project payments data\n")
+                    df.flush()
+                    project_data['payments'] = self.current_project['payments'].copy()
+                else:
+                    # Fallback: collect basic payment data from tree view
+                    df.write("DEBUG: Collecting payments from tree view (fallback)\n")
+                    df.flush()
+                    for item in self.payments_tree.get_children():
+                        values = self.payments_tree.item(item)['values']
+                        df.write(f"DEBUG: Payment values: {values}\n")
+                        df.flush()
+                        if len(values) >= 3:  # Ensure we have at least the basic columns
+                            payment = {
+                                'date': convert_to_iso_date(values[0]),
+                                'description': values[1],  # Use 'description' consistently
+                                'amount': float(values[2].replace('$', '').replace(',', '')),
+                                'assignments': [],  # New payments have no assignments
+                                'unassigned_amount': float(values[2].replace('$', '').replace(',', ''))
+                            }
+                            project_data['payments'].append(payment)
+                
+                # Determine file path
+                df.write("DEBUG: Determining file path\n")
+                df.flush()
+                if not self.current_project_file:
+                    # New project - create filename from title
+                    safe_title = "".join(c for c in project_data['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                    safe_title = safe_title.replace(' ', '-').lower()
+                    self.current_project_file = self.projects_dir / f"{safe_title}.json"
+                
+                df.write(f"DEBUG: Saving to file: {self.current_project_file}\n")
+                df.flush()
+                # Save to file
+                with open(self.current_project_file, 'w') as f:
+                    json.dump(project_data, f, indent=2)
+                
+                df.write("DEBUG: File saved successfully\n")
+                df.flush()
+                messagebox.showinfo("Success", "Project saved successfully!")
+                self.load_projects()  # Refresh project list
+                self.status_var.set(f"Saved project: {project_data['title']}")
+                df.write("DEBUG: save_project completed successfully\n")
+                
         except Exception as e:
+            # Write error to debug file
+            with open(debug_file, "a") as df:
+                df.write(f"DEBUG: ERROR in save_project: {str(e)}\n")
+                import traceback
+                df.write(f"DEBUG: Traceback:\n{traceback.format_exc()}\n")
             messagebox.showerror("Error", f"Failed to save project: {str(e)}")
     
     def generate_report(self):
@@ -1241,8 +1837,9 @@ class InterestRateCalculator:
             title = f"Interest Rate Calculator v{self.version} - Last Updated: {self.last_updated} - Launched: {self.launch_time} - Runtime: {runtime_str}"
             self.root.title(title)
             
-            # Schedule next update
-            self.root.after(1000, self.update_runtime)
+            # Schedule next update with safety check
+            if self.root and self.root.winfo_exists():
+                self.root.after(1000, self.update_runtime)
         except Exception as e:
             # Silently handle any runtime update errors
             pass
@@ -1350,8 +1947,12 @@ class PaymentDialog:
         ttk.Label(amount_frame, text="Amount ($):", font=("Arial", 10, "bold")).pack(anchor=tk.W)
         self.amount_var = tk.StringVar()
         self.amount_var.set(str(existing_data.get('amount', '')) if existing_data else '')
-        amount_entry = ttk.Entry(amount_frame, textvariable=self.amount_var, width=25, font=("Arial", 10))
-        amount_entry.pack(anchor=tk.W, pady=(5, 0))
+        self.amount_entry = ttk.Entry(amount_frame, textvariable=self.amount_var, width=25, font=("Arial", 10))
+        self.amount_entry.pack(anchor=tk.W, pady=(5, 0))
+        
+        # Bind currency formatting events
+        self.amount_entry.bind('<KeyRelease>', self.format_amount_field)
+        self.amount_entry.bind('<FocusOut>', self.format_amount_field)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -1360,6 +1961,26 @@ class PaymentDialog:
         ttk.Button(button_frame, text="Save", command=self.ok_clicked, width=12).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Clear", command=self.clear_fields, width=12).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", command=self.window.destroy, width=12).pack(side=tk.LEFT)
+    
+    def format_amount_field(self, event=None):
+        """Format amount field as currency while typing."""
+        current_value = self.amount_var.get()
+        
+        # Remove all non-digit characters except decimal point
+        cleaned = ''.join(c for c in current_value if c.isdigit() or c == '.')
+        
+        if cleaned and cleaned != '.':
+            try:
+                # Convert to float and format as currency
+                amount = float(cleaned)
+                formatted = f"{amount:,.2f}"
+                
+                # Only update if the formatted value is different to avoid cursor jumping
+                if formatted != current_value:
+                    self.amount_var.set(formatted)
+            except ValueError:
+                # If conversion fails, keep the current value
+                pass
         
     def clear_fields(self):
         """Clear all input fields."""
@@ -1380,11 +2001,19 @@ class PaymentDialog:
             if not self.amount_var.get().strip():
                 messagebox.showerror("Error", "Please enter an amount")
                 return
+            
+            # Parse currency-formatted amount (remove commas)
+            amount_str = self.amount_var.get().replace(',', '')
+            try:
+                amount_float = float(amount_str)
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid amount")
+                return
                 
             self.result = {
                 'date': self.date_var.get(),
                 'desc': self.desc_var.get(),
-                'amount': float(self.amount_var.get())
+                'amount': amount_float
             }
             self.window.destroy()
         except ValueError:
@@ -1462,8 +2091,12 @@ class InvoiceDialog:
         ttk.Label(amount_frame, text="Amount ($):", font=("Arial", 10, "bold")).pack(anchor=tk.W)
         self.amount_var = tk.StringVar()
         self.amount_var.set(str(existing_data.get('amount', '')) if existing_data else '')
-        amount_entry = ttk.Entry(amount_frame, textvariable=self.amount_var, width=25, font=("Arial", 10))
-        amount_entry.pack(anchor=tk.W, pady=(5, 0))
+        self.amount_entry = ttk.Entry(amount_frame, textvariable=self.amount_var, width=25, font=("Arial", 10))
+        self.amount_entry.pack(anchor=tk.W, pady=(5, 0))
+        
+        # Bind currency formatting events
+        self.amount_entry.bind('<KeyRelease>', self.format_amount_field)
+        self.amount_entry.bind('<FocusOut>', self.format_amount_field)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -1472,6 +2105,26 @@ class InvoiceDialog:
         ttk.Button(button_frame, text="Save", command=self.ok_clicked, width=12).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Clear", command=self.clear_fields, width=12).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", command=self.window.destroy, width=12).pack(side=tk.LEFT)
+        
+    def format_amount_field(self, event=None):
+        """Format amount field as currency while typing."""
+        current_value = self.amount_var.get()
+        
+        # Remove all non-digit characters except decimal point
+        cleaned = ''.join(c for c in current_value if c.isdigit() or c == '.')
+        
+        if cleaned and cleaned != '.':
+            try:
+                # Convert to float and format as currency
+                amount = float(cleaned)
+                formatted = f"{amount:,.2f}"
+                
+                # Only update if the formatted value is different to avoid cursor jumping
+                if formatted != current_value:
+                    self.amount_var.set(formatted)
+            except ValueError:
+                # If conversion fails, keep the current value
+                pass
         
     def clear_fields(self):
         """Clear all input fields."""
@@ -1503,12 +2156,19 @@ class InvoiceDialog:
                 messagebox.showerror("Error", "Please enter an amount")
                 return
             
+            # Parse currency-formatted amount (remove commas)
+            try:
+                amount_float = float(amount_val.replace(',', ''))
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid amount")
+                return
+            
             print(f"DEBUG: Creating result with invoice_id: {self.invoice_id}")
             self.result = {
                 'id': self.invoice_id,
                 'date': date_val,
                 'desc': desc_val,
-                'amount': float(amount_val)
+                'amount': amount_float
             }
             print(f"DEBUG: Result created: {self.result}")
             self.window.destroy()
@@ -1676,6 +2336,532 @@ class NewProjectDialog:
     def cancel_clicked(self):
         """Handle Cancel button click."""
         self.result = None
+        self.window.destroy()
+
+
+class PaymentAssignmentDialog:
+    """Dialog for assigning payments to invoices with pre-invoice payment support"""
+    
+    def __init__(self, parent, payment_description, unassigned_amount, available_invoices):
+        self.parent = parent
+        self.payment_description = payment_description
+        self.unassigned_amount = unassigned_amount
+        self.available_invoices = available_invoices
+        self.result = None
+        
+        self.create_dialog()
+    
+    def create_dialog(self):
+        """Create the payment assignment dialog"""
+        self.window = tk.Toplevel(self.parent)
+        self.window.title("Assign Payment to Invoice")
+        self.window.geometry("600x500")
+        self.window.resizable(True, True)
+        
+        # Make dialog modal
+        self.window.transient(self.parent)
+        self.window.grab_set()
+        
+        # Center the dialog
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() - self.window.winfo_width()) // 2
+        y = (self.window.winfo_screenheight() - self.window.winfo_height()) // 2
+        self.window.geometry(f"+{x}+{y}")
+        
+        # Main frame
+        main_frame = ttk.Frame(self.window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="Assign Payment to Invoice", 
+                               font=("Arial", 14, "bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # Payment info
+        payment_info_frame = ttk.LabelFrame(main_frame, text="Payment Information", padding="10")
+        payment_info_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(payment_info_frame, text=f"Payment: {self.payment_description}").pack(anchor=tk.W)
+        ttk.Label(payment_info_frame, text=f"Unassigned Amount: ${self.unassigned_amount:,.2f}").pack(anchor=tk.W)
+        
+        # Assignment details
+        assignment_frame = ttk.LabelFrame(main_frame, text="Assignment Details", padding="10")
+        assignment_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # Invoice selection
+        invoice_frame = ttk.Frame(assignment_frame)
+        invoice_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(invoice_frame, text="Target Invoice:").pack(anchor=tk.W)
+        self.invoice_var = tk.StringVar()
+        invoice_combo = ttk.Combobox(invoice_frame, textvariable=self.invoice_var, 
+                                   state="readonly", width=50)
+        
+        # Populate invoice dropdown
+        invoice_options = []
+        for invoice in self.available_invoices:
+            option = f"{invoice['id']} - {invoice['description']} (${invoice['amount']:,.2f})"
+            invoice_options.append(option)
+        
+        invoice_combo['values'] = invoice_options
+        invoice_combo.pack(fill=tk.X, pady=(2, 0))
+        invoice_combo.bind('<<ComboboxSelected>>', self.on_invoice_selected)
+        
+        # Assignment amount
+        amount_frame = ttk.Frame(assignment_frame)
+        amount_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(amount_frame, text="Assignment Amount:").pack(anchor=tk.W)
+        self.amount_var = tk.StringVar(value=str(self.unassigned_amount))
+        amount_entry = ttk.Entry(amount_frame, textvariable=self.amount_var, width=20)
+        amount_entry.pack(anchor=tk.W, pady=(2, 0))
+        
+        # Assignment date
+        date_frame = ttk.Frame(assignment_frame)
+        date_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(date_frame, text="Assignment Date (MM/DD/YYYY):").pack(anchor=tk.W)
+        self.date_var = tk.StringVar(value=datetime.now().strftime("%m/%d/%Y"))
+        date_entry = ttk.Entry(date_frame, textvariable=self.date_var, width=20)
+        date_entry.pack(anchor=tk.W, pady=(2, 0))
+        
+        # Notes
+        notes_frame = ttk.Frame(assignment_frame)
+        notes_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        
+        ttk.Label(notes_frame, text="Notes (optional):").pack(anchor=tk.W)
+        self.notes_text = tk.Text(notes_frame, height=4, width=50)
+        self.notes_text.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
+        
+        # CRITICAL: Pre-invoice payment warning
+        warning_frame = ttk.Frame(assignment_frame)
+        warning_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        warning_label = ttk.Label(warning_frame, 
+                                 text="Note: Payments can be assigned before invoice dates.\n"
+                                      "This will reduce the principal amount when interest calculation begins.",
+                                 foreground="blue", font=("Arial", 9, "italic"))
+        warning_label.pack(anchor=tk.W)
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Assign Payment", command=self.ok_clicked, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked, 
+                  width=15).pack(side=tk.LEFT)
+        
+        # Bind keys
+        self.window.bind('<Return>', lambda e: self.ok_clicked())
+        self.window.bind('<Escape>', lambda e: self.cancel_clicked())
+    
+    def on_invoice_selected(self, event):
+        """Handle invoice selection to provide helpful info"""
+        if self.invoice_var.get():
+            # Extract invoice ID from selection
+            invoice_id = self.invoice_var.get().split(' - ')[0]
+            
+            # Find selected invoice
+            selected_invoice = None
+            for invoice in self.available_invoices:
+                if invoice['id'] == invoice_id:
+                    selected_invoice = invoice
+                    break
+            
+            if selected_invoice:
+                # Update notes with helpful info
+                current_notes = self.notes_text.get("1.0", tk.END).strip()
+                if not current_notes:
+                    self.notes_text.insert("1.0", 
+                        f"Payment assignment to {selected_invoice['description']}\n"
+                        f"Invoice Amount: ${selected_invoice['amount']:,.2f}")
+    
+    def ok_clicked(self):
+        """Handle Assign Payment button click with validation"""
+        try:
+            # Validate invoice selection
+            if not self.invoice_var.get():
+                messagebox.showerror("Error", "Please select an invoice")
+                return
+            
+            # Extract invoice ID
+            invoice_id = self.invoice_var.get().split(' - ')[0]
+            
+            # Validate assignment amount
+            try:
+                assigned_amount = float(self.amount_var.get())
+                if assigned_amount <= 0:
+                    messagebox.showerror("Error", "Assignment amount must be greater than 0")
+                    return
+                if assigned_amount > self.unassigned_amount:
+                    messagebox.showerror("Error", f"Assignment amount cannot exceed unassigned amount (${self.unassigned_amount:,.2f})")
+                    return
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid assignment amount")
+                return
+            
+            # Validate assignment date
+            assignment_date = self.date_var.get().strip()
+            if not assignment_date:
+                messagebox.showerror("Error", "Please enter an assignment date")
+                return
+            
+            try:
+                datetime.strptime(assignment_date, '%m/%d/%Y')
+            except ValueError:
+                messagebox.showerror("Error", "Please enter assignment date in MM/DD/YYYY format")
+                return
+            
+            # Get notes
+            notes = self.notes_text.get("1.0", tk.END).strip()
+            
+            # Create result
+            self.result = {
+                'invoice_id': invoice_id,
+                'assigned_amount': assigned_amount,
+                'assignment_date': convert_to_iso_date(assignment_date),
+                'notes': notes
+            }
+            
+            self.window.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+    
+    def cancel_clicked(self):
+        """Handle Cancel button click"""
+        self.result = None
+        self.window.destroy()
+
+
+class PaymentAssignmentViewerDialog:
+    """Dialog for viewing and managing payment assignments"""
+    
+    def __init__(self, parent, payment, invoices):
+        self.parent = parent
+        self.payment = payment
+        self.invoices = invoices
+        self.result = None
+        
+        self.create_dialog()
+    
+    def create_dialog(self):
+        """Create the payment assignment viewer dialog"""
+        self.window = tk.Toplevel(self.parent)
+        self.window.title("Payment Assignment Details")
+        self.window.geometry("700x500")
+        self.window.resizable(True, True)
+        
+        # Make dialog modal
+        self.window.transient(self.parent)
+        self.window.grab_set()
+        
+        # Center the dialog
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() - self.window.winfo_width()) // 2
+        y = (self.window.winfo_screenheight() - self.window.winfo_height()) // 2
+        self.window.geometry(f"+{x}+{y}")
+        
+        # Main frame
+        main_frame = ttk.Frame(self.window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="Payment Assignment Details", 
+                               font=("Arial", 14, "bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # Payment summary
+        summary_frame = ttk.LabelFrame(main_frame, text="Payment Summary", padding="10")
+        summary_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(summary_frame, text=f"Payment ID: {self.payment.get('id', 'N/A')}").pack(anchor=tk.W)
+        ttk.Label(summary_frame, text=f"Date: {convert_to_american_date(self.payment.get('date', ''))}").pack(anchor=tk.W)
+        ttk.Label(summary_frame, text=f"Description: {self.payment.get('description', self.payment.get('desc', 'N/A'))}").pack(anchor=tk.W)
+        ttk.Label(summary_frame, text=f"Total Amount: ${self.payment.get('amount', 0):,.2f}").pack(anchor=tk.W)
+        ttk.Label(summary_frame, text=f"Unassigned Amount: ${self.payment.get('unassigned_amount', 0):,.2f}").pack(anchor=tk.W)
+        
+        # Assignments table
+        assignments_frame = ttk.LabelFrame(main_frame, text="Current Assignments", padding="10")
+        assignments_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # Create treeview for assignments
+        columns = ('Invoice ID', 'Invoice Description', 'Assigned Amount', 'Assignment Date', 'Notes')
+        self.assignments_tree = ttk.Treeview(assignments_frame, columns=columns, show='headings', height=10)
+        
+        # Configure columns
+        self.assignments_tree.heading('Invoice ID', text='Invoice ID')
+        self.assignments_tree.heading('Invoice Description', text='Description')
+        self.assignments_tree.heading('Assigned Amount', text='Amount')
+        self.assignments_tree.heading('Assignment Date', text='Date')
+        self.assignments_tree.heading('Notes', text='Notes')
+        
+        self.assignments_tree.column('Invoice ID', width=100)
+        self.assignments_tree.column('Invoice Description', width=200)
+        self.assignments_tree.column('Assigned Amount', width=100)
+        self.assignments_tree.column('Assignment Date', width=100)
+        self.assignments_tree.column('Notes', width=150)
+        
+        # Add scrollbar
+        assignments_scrollbar = ttk.Scrollbar(assignments_frame, orient=tk.VERTICAL, 
+                                            command=self.assignments_tree.yview)
+        self.assignments_tree.configure(yscrollcommand=assignments_scrollbar.set)
+        
+        # Pack tree and scrollbar
+        self.assignments_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        assignments_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Populate assignments
+        self.load_assignments()
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Remove Assignment", command=self.remove_assignment, 
+                  width=18).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Reassign Payment", command=self.reassign_payment, 
+                  width=18).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Close", command=self.close_clicked, 
+                  width=15).pack(side=tk.RIGHT)
+        
+        # Bind Escape key
+        self.window.bind('<Escape>', lambda e: self.close_clicked())
+    
+    def load_assignments(self):
+        """Load payment assignments into the tree"""
+        assignments = self.payment.get('assignments', [])
+        
+        if not assignments:
+            # Show message if no assignments
+            self.assignments_tree.insert('', 'end', values=('No assignments', '', '', '', ''))
+            return
+        
+        for assignment in assignments:
+            # Find invoice description
+            invoice_desc = 'Unknown Invoice'
+            for invoice in self.invoices:
+                if invoice['id'] == assignment.get('invoice_id'):
+                    invoice_desc = invoice['description']
+                    break
+            
+            self.assignments_tree.insert('', 'end', values=(
+                assignment.get('invoice_id', 'N/A'),
+                invoice_desc,
+                f"${assignment.get('assigned_amount', 0):,.2f}",
+                convert_to_american_date(assignment.get('assignment_date', '')),
+                assignment.get('notes', '')
+            ))
+    
+    def remove_assignment(self):
+        """Remove the selected assignment and return amount to unassigned"""
+        selection = self.assignments_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an assignment to remove")
+            return
+        
+        # Get selected assignment details
+        item_id = selection[0]
+        values = self.assignments_tree.item(item_id, 'values')
+        
+        if values[0] == 'No assignments':
+            return
+        
+        invoice_id = values[0]
+        assigned_amount_str = values[2].replace('$', '').replace(',', '')
+        
+        try:
+            assigned_amount = float(assigned_amount_str)
+        except ValueError:
+            messagebox.showerror("Error", "Invalid amount format")
+            return
+        
+        # Confirm removal
+        result = messagebox.askyesno("Confirm Removal", 
+                                   f"Remove assignment of ${assigned_amount:,.2f} from {invoice_id}?\n"
+                                   f"This amount will be returned to unassigned.")
+        
+        if result:
+            self.result = {
+                'action': 'remove',
+                'invoice_id': invoice_id,
+                'amount': assigned_amount
+            }
+            messagebox.showinfo("Success", "Assignment removed. Please close dialog to apply changes.")
+    
+    def reassign_payment(self):
+        """Reassign the selected assignment to a different invoice"""
+        selection = self.assignments_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an assignment to reassign")
+            return
+        
+        # Get selected assignment details
+        item_id = selection[0]
+        values = self.assignments_tree.item(item_id, 'values')
+        
+        if values[0] == 'No assignments':
+            return
+        
+        current_invoice_id = values[0]
+        assigned_amount_str = values[2].replace('$', '').replace(',', '')
+        assignment_date = values[3]
+        notes = values[4]
+        
+        try:
+            assigned_amount = float(assigned_amount_str)
+        except ValueError:
+            messagebox.showerror("Error", "Invalid amount format")
+            return
+        
+        # Create reassignment dialog
+        ReassignmentDialog(self, current_invoice_id, assigned_amount, assignment_date, 
+                          notes, self.invoices, self.on_reassignment_complete)
+    
+    def on_reassignment_complete(self, reassignment_data):
+        """Handle completion of reassignment dialog"""
+        self.result = {
+            'action': 'reassign',
+            'old_invoice_id': reassignment_data['old_invoice_id'],
+            'new_invoice_id': reassignment_data['new_invoice_id'],
+            'amount': reassignment_data['amount'],
+            'date': reassignment_data['date'],
+            'notes': reassignment_data['notes']
+        }
+        messagebox.showinfo("Success", "Payment reassigned. Please close dialog to apply changes.")
+    
+    def close_clicked(self):
+        """Handle Close button click"""
+        self.window.destroy()
+
+
+class ReassignmentDialog:
+    """Dialog for reassigning a payment from one invoice to another"""
+    
+    def __init__(self, parent, old_invoice_id, amount, current_date, current_notes, 
+                 available_invoices, callback):
+        self.parent = parent
+        self.old_invoice_id = old_invoice_id
+        self.amount = amount
+        self.current_date = current_date
+        self.current_notes = current_notes
+        self.available_invoices = available_invoices
+        self.callback = callback
+        
+        self.create_dialog()
+    
+    def create_dialog(self):
+        """Create the reassignment dialog"""
+        self.window = tk.Toplevel(self.parent.window)
+        self.window.title("Reassign Payment")
+        self.window.geometry("500x400")
+        self.window.resizable(True, True)
+        
+        # Make dialog modal
+        self.window.transient(self.parent.window)
+        self.window.grab_set()
+        
+        # Center the dialog
+        self.window.update_idletasks()
+        x = (self.window.winfo_screenwidth() - self.window.winfo_width()) // 2
+        y = (self.window.winfo_screenheight() - self.window.winfo_height()) // 2
+        self.window.geometry(f"+{x}+{y}")
+        
+        # Main frame
+        main_frame = ttk.Frame(self.window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="Reassign Payment", 
+                               font=("Arial", 14, "bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # Current assignment info
+        current_frame = ttk.LabelFrame(main_frame, text="Current Assignment", padding="10")
+        current_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(current_frame, text=f"Current Invoice: {self.old_invoice_id}").pack(anchor=tk.W)
+        ttk.Label(current_frame, text=f"Amount: ${self.amount:,.2f}").pack(anchor=tk.W)
+        ttk.Label(current_frame, text=f"Date: {self.current_date}").pack(anchor=tk.W)
+        
+        # New assignment details
+        new_frame = ttk.LabelFrame(main_frame, text="New Assignment", padding="10")
+        new_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # Invoice selection
+        ttk.Label(new_frame, text="Target Invoice:").pack(anchor=tk.W)
+        self.invoice_var = tk.StringVar()
+        invoice_combo = ttk.Combobox(new_frame, textvariable=self.invoice_var, 
+                                   state="readonly", width=50)
+        
+        # Populate invoice dropdown (excluding current invoice)
+        invoice_options = []
+        for invoice in self.available_invoices:
+            if invoice['id'] != self.old_invoice_id:  # Exclude current invoice
+                option = f"{invoice['id']} - {invoice['description']} (${invoice['amount']:,.2f})"
+                invoice_options.append(option)
+        
+        invoice_combo['values'] = invoice_options
+        invoice_combo.pack(fill=tk.X, pady=(2, 10))
+        
+        # Assignment date
+        ttk.Label(new_frame, text="Assignment Date (MM/DD/YYYY):").pack(anchor=tk.W)
+        self.date_var = tk.StringVar(value=self.current_date)
+        date_entry = ttk.Entry(new_frame, textvariable=self.date_var, width=20)
+        date_entry.pack(anchor=tk.W, pady=(2, 10))
+        
+        # Notes
+        ttk.Label(new_frame, text="Notes (optional):").pack(anchor=tk.W)
+        self.notes_text = tk.Text(new_frame, height=4, width=50)
+        self.notes_text.insert('1.0', self.current_notes)
+        self.notes_text.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        ttk.Button(button_frame, text="Reassign", command=self.ok_clicked, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked, 
+                  width=15).pack(side=tk.LEFT)
+        
+        # Bind keys
+        self.window.bind('<Return>', lambda e: self.ok_clicked())
+        self.window.bind('<Escape>', lambda e: self.cancel_clicked())
+    
+    def ok_clicked(self):
+        """Handle Reassign button click"""
+        if not self.invoice_var.get():
+            messagebox.showerror("Error", "Please select a target invoice")
+            return
+        
+        if not self.date_var.get().strip():
+            messagebox.showerror("Error", "Please enter an assignment date")
+            return
+        
+        # Extract invoice ID from selection
+        invoice_selection = self.invoice_var.get()
+        new_invoice_id = invoice_selection.split(' - ')[0]
+        
+        # Confirm reassignment
+        result = messagebox.askyesno("Confirm Reassignment", 
+                                   f"Reassign ${self.amount:,.2f} from {self.old_invoice_id} to {new_invoice_id}?")
+        
+        if result:
+            reassignment_data = {
+                'old_invoice_id': self.old_invoice_id,
+                'new_invoice_id': new_invoice_id,
+                'amount': self.amount,
+                'date': self.date_var.get().strip(),
+                'notes': self.notes_text.get('1.0', 'end-1c').strip()
+            }
+            
+            self.callback(reassignment_data)
+            self.window.destroy()
+    
+    def cancel_clicked(self):
+        """Handle Cancel button click"""
         self.window.destroy()
 
 

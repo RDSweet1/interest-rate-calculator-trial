@@ -1,0 +1,8 @@
+DEBUG: Invoice edit attempt
+DEBUG: Original ID: INV-DRY-001
+DEBUG: New data: {'id': 'INV-DRY-001', 'date': '04/28/2023', 'desc': 'Test', 'amount': 250000.0}
+DEBUG: Invoice updated in current_project: True
+DEBUG: Current project invoices count: 3
+DEBUG: Invoice 0: {'id': 'INV-FW-001', 'date': '2023-04-28', 'desc': 'Flood / Wind', 'amount': 13365247.68}
+DEBUG: Invoice 1: {'id': 'INV-DW-001', 'date': '2023-04-28', 'desc': 'Drywall', 'amount': 1113503.81}
+DEBUG: Invoice 2: {'id': 'INV-DRY-001', 'date': '2023-04-28', 'desc': 'Test', 'amount': 250000.0}

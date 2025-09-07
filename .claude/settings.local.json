@@ -5,7 +5,9 @@
       "Bash(.venv/Scripts/activate)",
       "Bash(pip install:*)",
       "Bash(playwright install)",
-      "Bash(del test_import.py)"
+      "Bash(del test_import.py)",
+      "Read(c:\\Users\\david\\AppData\\Local\\Temp/**)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,12 @@
+DEBUG: Starting save_project
+DEBUG: Collecting form data
+DEBUG: Using current_project invoice data
+DEBUG: Saving invoice 0: ID=INV-FW-001, desc=Flood / Wind
+DEBUG: Saving invoice 1: ID=INV-DW-001, desc=Drywall
+DEBUG: Saving invoice 2: ID=INV-DRY-001, desc=Test
+DEBUG: Collecting payments from tree view
+DEBUG: Using current_project payments data
+DEBUG: Determining file path
+DEBUG: Saving to file: projects\ocean-harbor.json
+DEBUG: File saved successfully
+DEBUG: save_project completed successfully

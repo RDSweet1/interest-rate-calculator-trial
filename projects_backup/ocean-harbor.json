@@ -1,0 +1,31 @@
+{
+  "title": "Ocean Harbor Condo Association",
+  "billing_date": "2023-04-28",
+  "as_of_date": "2025-09-05",
+  "grace_days": 30,
+  "annual_rate": 0.18,
+  "monthly_rate": 0.015,
+  "principal_fw": 13365247.68,
+  "principal_dw": 1113503.81,
+  "payments": [
+    {
+      "desc": "Flood Deductible",
+      "date": "2023-01-04",
+      "amount": 100000.0
+    },
+    {
+      "desc": "WIND Deductible",
+      "date": "2023-01-24",
+      "amount": 860000.0
+    },
+    {
+      "desc": "WIND Balance",
+      "date": "2023-02-21",
+      "amount": 2700000.0
+    }
+  ],
+  "sharepoint": {
+    "folder_id": null,
+    "folder_path": null
+  }
+}
