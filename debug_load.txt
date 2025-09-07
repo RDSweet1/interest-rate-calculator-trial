@@ -2,7 +2,7 @@ DEBUG: Starting load_project_data
 DEBUG: Loaded current_project with 3 invoices
 DEBUG: Loaded invoice 0: ID=INV-FW-001, desc='Flood / Wind'
 DEBUG: Loaded invoice 1: ID=INV-DW-001, desc='Drywall'
-DEBUG: Loaded invoice 2: ID=INV-DRY-001, desc=''
+DEBUG: Loaded invoice 2: ID=INV-DRY-001, desc='Test'
 DEBUG: Checking form variables
 DEBUG: Loading basic data
 DEBUG: Loading description

@@ -39,7 +39,8 @@
           "notes": "Flood deductible applied to Fresh Water principal"
         }
       ],
-      "unassigned_amount": 0.0
+      "unassigned_amount": 0.0,
+      "desc": "Flood Deductible"
     },
     {
       "id": "PAY-CCCF756B",
@@ -54,7 +55,8 @@
           "notes": "WIND deductible applied to Fresh Water principal"
         }
       ],
-      "unassigned_amount": 0.0
+      "unassigned_amount": 0.0,
+      "desc": "WIND Deductible"
     },
     {
       "id": "PAY-00124688",
@@ -84,7 +86,8 @@
           "notes": "Drywall payment applied to drywall invoice"
         }
       ],
-      "unassigned_amount": 0.0
+      "unassigned_amount": 0.0,
+      "desc": "Drywall Payment"
     }
   ]
 }
